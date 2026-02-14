@@ -40,3 +40,18 @@ export const getPdfPageCount = async (file) => {
     const pdfDoc = await PDFDocument.load(arrayBuffer);
     return pdfDoc.getPageCount();
 };
+
+export const repairPdf = async (file) => {
+    const arrayBuffer = await file.arrayBuffer();
+    // Load with ignoreEncryption: true to attempt to open even if slightly corrupted or encrypted without password (if empty)
+    // and potentially other loose parsing options if available. pdf-lib is generally strict but simply saving it often fixes structure.
+    const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+
+    // Create a new document and copy pages to it to ensure a clean structure
+    const newPdf = await PDFDocument.create();
+    const copiedPages = await newPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
+    copiedPages.forEach((page) => newPdf.addPage(page));
+
+    const pdfBytes = await newPdf.save();
+    return new Blob([pdfBytes], { type: 'application/pdf' });
+};

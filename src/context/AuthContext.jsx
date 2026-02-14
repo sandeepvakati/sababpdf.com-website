@@ -1,4 +1,13 @@
 import { createContext, useState, useEffect, useContext } from 'react';
+import {
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    updateProfile,
+    signInWithPopup
+} from 'firebase/auth';
+import { auth, googleProvider } from '../firebase';
 
 const AuthContext = createContext();
 
@@ -9,60 +18,51 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check local storage on mount
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-        }
-        setLoading(false);
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            if (currentUser) {
+                // Manually structure the user object to include displayName immediately if available
+                // or fall back to what we have. 
+                setUser({
+                    uid: currentUser.uid,
+                    email: currentUser.email,
+                    name: currentUser.displayName
+                });
+            } else {
+                setUser(null);
+            }
+            setLoading(false);
+        });
+
+        return unsubscribe;
     }, []);
 
     const login = (email, password) => {
-        // Simulated login logic
-        // In a real app, this would verify credentials with a server
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                const storedUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-                const foundUser = storedUsers.find(u => u.email === email && u.password === password);
-
-                if (foundUser) {
-                    const userSession = { name: foundUser.name, email: foundUser.email };
-                    localStorage.setItem('user', JSON.stringify(userSession));
-                    setUser(userSession);
-                    resolve(userSession);
-                } else {
-                    reject(new Error('Invalid email or password'));
-                }
-            }, 800); // Simulate network delay
-        });
+        return signInWithEmailAndPassword(auth, email, password);
     };
 
-    const signup = (name, email, password) => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                const storedUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-
-                if (storedUsers.some(u => u.email === email)) {
-                    reject(new Error('Email already registered'));
-                    return;
-                }
-
-                const newUser = { name, email, password };
-                storedUsers.push(newUser);
-                localStorage.setItem('registeredUsers', JSON.stringify(storedUsers));
-
-                // Auto login after signup
-                const userSession = { name, email };
-                localStorage.setItem('user', JSON.stringify(userSession));
-                setUser(userSession);
-                resolve(userSession);
-            }, 800);
+    const signup = async (name, email, password) => {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        // Update user profile with name
+        await updateProfile(userCredential.user, {
+            displayName: name
         });
+
+        // Force update local state to include the name immediately
+        setUser({
+            uid: userCredential.user.uid,
+            email: userCredential.user.email,
+            name: name
+        });
+
+        return userCredential;
     };
 
     const logout = () => {
-        localStorage.removeItem('user');
-        setUser(null);
+        return signOut(auth);
+    };
+
+    const googleSignIn = () => {
+        return signInWithPopup(auth, googleProvider);
     };
 
     const value = {
@@ -70,6 +70,7 @@ export const AuthProvider = ({ children }) => {
         login,
         signup,
         logout,
+        googleSignIn,
         loading
     };
 

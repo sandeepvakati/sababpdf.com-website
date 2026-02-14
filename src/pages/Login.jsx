@@ -7,7 +7,7 @@ const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const { login } = useAuth();
+    const { login, googleSignIn } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -38,6 +38,32 @@ const Login = () => {
                         </Link>
                     </p>
                 </div>
+
+                <button
+                    onClick={async () => {
+                        try {
+                            await googleSignIn();
+                            navigate('/');
+                        } catch (error) {
+                            console.error("Google Sign-In Error:", error);
+                            setError(error.message);
+                        }
+                    }}
+                    className="w-full flex items-center justify-center gap-3 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all mb-6"
+                >
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+                    Sign in with Google
+                </button>
+
+                <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-white text-gray-500">Or continue with email</span>
+                    </div>
+                </div>
+
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     {error && <div className="bg-red-50 text-red-500 text-sm p-3 rounded-md text-center">{error}</div>}
                     <div className="rounded-md shadow-sm -space-y-px">
