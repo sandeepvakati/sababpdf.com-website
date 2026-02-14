@@ -10,8 +10,8 @@ const PowerPointToPdf = () => {
     const [error, setError] = useState(null);
     const [useProfessional, setUseProfessional] = useState(false);
 
-    // Backend API URL - Replace this after deploying to Render
-    const BACKEND_URL = 'https://your-api-url.onrender.com'; // TODO: Update after deployment
+    // Backend API URL - Connected to Render deployment
+    const BACKEND_URL = 'https://pptx-to-pdf-api.onrender.com';
 
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
