@@ -5,13 +5,14 @@ import {
     Layers, Scissors, Minimize2, FileBadge, Crop,
     Image, FileSpreadsheet, Presentation,
     RotateCw, Hash, Stamp, ArrowRightLeft,
-    FileImage, Lock, Unlock, Scan, Camera, Wrench, Globe
+    FileImage, Lock, Unlock, Scan, Camera, Wrench, Globe, MoreVertical
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
     const { user, logout } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const tools = {
         organize: [
@@ -171,14 +172,57 @@ const Navbar = () => {
                                 </button>
                             </div>
                         ) : (
-                            <div className="hidden md:flex items-center space-x-2">
-                                <Link to="/login" className="text-gray-700 hover:text-gray-900 font-medium text-sm px-3 py-2">
-                                    Log in
-                                </Link>
-                                <Link to="/signup" className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm hover:shadow-md">
-                                    Sign up
-                                </Link>
-                            </div>
+                            <>
+                                {/* Desktop Login/Signup */}
+                                <div className="hidden md:flex items-center space-x-2">
+                                    <Link to="/login" className="text-gray-700 hover:text-gray-900 font-medium text-sm px-3 py-2">
+                                        Log in
+                                    </Link>
+                                    <Link to="/signup" className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm hover:shadow-md">
+                                        Sign up
+                                    </Link>
+                                </div>
+
+                                {/* Mobile Menu Button (Three Dots) */}
+                                <div className="md:hidden relative">
+                                    <button
+                                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                                        className="p-2 text-gray-700 hover:text-red-500 hover:bg-gray-50 rounded-lg transition-colors"
+                                        aria-label="Menu"
+                                    >
+                                        <MoreVertical className="h-6 w-6" />
+                                    </button>
+
+                                    {/* Mobile Dropdown Menu */}
+                                    {isMobileMenuOpen && (
+                                        <>
+                                            {/* Backdrop to close menu when clicking outside */}
+                                            <div
+                                                className="fixed inset-0 z-40"
+                                                onClick={() => setIsMobileMenuOpen(false)}
+                                            />
+
+                                            {/* Dropdown */}
+                                            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                                                <Link
+                                                    to="/login"
+                                                    className="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-red-500 font-medium text-sm transition-colors"
+                                                    onClick={() => setIsMobileMenuOpen(false)}
+                                                >
+                                                    Log in
+                                                </Link>
+                                                <Link
+                                                    to="/signup"
+                                                    className="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-red-500 font-medium text-sm transition-colors border-t border-gray-100"
+                                                    onClick={() => setIsMobileMenuOpen(false)}
+                                                >
+                                                    Sign up
+                                                </Link>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>
