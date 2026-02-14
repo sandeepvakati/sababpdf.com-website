@@ -151,6 +151,9 @@ const Navbar = () => {
                             <Link to="/compress-pdf" className="text-gray-700 hover:text-red-500 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                                 Compress PDF
                             </Link>
+                            <Link to="/blog" className="text-gray-700 hover:text-red-500 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                                Blog
+                            </Link>
                         </div>
                     </div>
 

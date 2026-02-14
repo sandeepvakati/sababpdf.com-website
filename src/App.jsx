@@ -11,6 +11,8 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import AboutUs from './pages/AboutUs';
 import Contact from './pages/Contact';
+import Blog from './pages/Blog';
+import BlogPost from './pages/BlogPost';
 import WordToPdf from './pages/WordToPdf';
 import PdfToWord from './pages/PdfToWord';
 import ExcelToPdf from './pages/ExcelToPdf';
@@ -71,6 +73,8 @@ function App() {
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/about-us" element={<AboutUs />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
           </Routes>
         </Layout>
       </Router>
