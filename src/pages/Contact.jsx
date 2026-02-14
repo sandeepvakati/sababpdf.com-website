@@ -25,7 +25,7 @@ const Contact = () => {
 
         // For now, we'll use mailto as a simple solution
         // You can replace this with a backend API later
-        const mailtoLink = `mailto:contact@sababpdf.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(
+        const mailtoLink = `mailto:sababpdf@gmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(
             `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`
         )}`;
 
@@ -135,8 +135,8 @@ const Contact = () => {
                             {/* Status Message */}
                             {status.message && (
                                 <div className={`flex items-center gap-2 p-4 rounded-lg ${status.type === 'success'
-                                        ? 'bg-green-50 text-green-800'
-                                        : 'bg-red-50 text-red-800'
+                                    ? 'bg-green-50 text-green-800'
+                                    : 'bg-red-50 text-red-800'
                                     }`}>
                                     {status.type === 'success' ? (
                                         <CheckCircle className="h-5 w-5" />
@@ -182,10 +182,10 @@ const Contact = () => {
                                         For general inquiries and support
                                     </p>
                                     <a
-                                        href="mailto:contact@sababpdf.com"
+                                        href="mailto:sababpdf@gmail.com"
                                         className="text-blue-600 hover:text-blue-700 font-medium"
                                     >
-                                        contact@sababpdf.com
+                                        sababpdf@gmail.com
                                     </a>
                                 </div>
                             </div>
