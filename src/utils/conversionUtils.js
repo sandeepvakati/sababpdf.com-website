@@ -596,7 +596,7 @@ export const addPageNumbers = async (file) => {
  * Adds watermark to PDF
  * @param {File} file - The PDF file
  * @param {string} watermarkText - Text to add as watermark
- * @param {Object} options - { color, fontSize, opacity, rotation, position, isMosaic }
+ * @param {Object} options - { watermarkType, watermarkImage, color, fontSize, opacity, rotation, position, isMosaic }
  * @returns {Promise<Blob>} - The PDF blob with watermark
  */
 export const addWatermark = async (file, watermarkText, options = {}) => {
@@ -605,11 +605,10 @@ export const addWatermark = async (file, watermarkText, options = {}) => {
         const pdfDoc = await PDFDocument.load(arrayBuffer);
         const pages = pdfDoc.getPages();
 
-        // Standard font
-        const font = await pdfDoc.embedFont('Helvetica-Bold');
-
         // Destructure options with defaults
         const {
+            watermarkType = 'text',
+            watermarkImage = null,
             color = '#ff0000', // Hex color
             fontSize = 50,
             opacity = 0.3,
@@ -618,60 +617,117 @@ export const addWatermark = async (file, watermarkText, options = {}) => {
             isMosaic = false
         } = options;
 
-        // Convert Hex to RGB
-        const r = parseInt(color.slice(1, 3), 16) / 255;
-        const g = parseInt(color.slice(3, 5), 16) / 255;
-        const b = parseInt(color.slice(5, 7), 16) / 255;
-        const rgbColor = rgb(r, g, b);
+        // Handle IMAGE watermark
+        if (watermarkType === 'image' && watermarkImage) {
+            const imageBytes = await watermarkImage.arrayBuffer();
+            let embeddedImage;
 
-        pages.forEach(page => {
-            const { width, height } = page.getSize();
-            const textWidth = font.widthOfTextAtSize(watermarkText, parseInt(fontSize));
-            const textHeight = parseInt(fontSize);
-
-            const drawWatermark = (x, y) => {
-                page.drawText(watermarkText, {
-                    x: x,
-                    y: y,
-                    size: parseInt(fontSize),
-                    font: font,
-                    opacity: parseFloat(opacity),
-                    rotate: degrees(parseInt(rotation)),
-                    color: rgbColor,
-                });
-            };
-
-            if (isMosaic) {
-                // Mosaic Pattern
-                const gapX = textWidth + 100;
-                const gapY = textHeight + 100;
-                for (let x = -width; x < width * 2; x += gapX) {
-                    for (let y = -height; y < height * 2; y += gapY) {
-                        drawWatermark(x, y);
-                    }
-                }
+            // Detect image type and embed
+            if (watermarkImage.type === 'image/png') {
+                embeddedImage = await pdfDoc.embedPng(imageBytes);
+            } else if (watermarkImage.type === 'image/jpeg' || watermarkImage.type === 'image/jpg') {
+                embeddedImage = await pdfDoc.embedJpg(imageBytes);
             } else {
-                // Standard Positioning
-                let x, y;
-
-                // Calculate X
-                if (position.includes('left')) x = 20;
-                else if (position.includes('right')) x = width - textWidth - 20;
-                else x = width / 2 - textWidth / 2; // Center horizontally
-
-                // Calculate Y
-                if (position.includes('top')) y = height - textHeight - 20;
-                else if (position.includes('bottom')) y = 20;
-                else y = height / 2 - textHeight / 2; // Center vertically
-
-                // Adjust for rotation roughly (centering rotation is tricky without transformation matrices, 
-                // but pdf-lib rotates around the text origin (bottom-left of text). 
-                // For a simple 'center' rotation, we might need to offset. 
-                // For now, simple positioning is enough for MVP.)
-
-                drawWatermark(x, y);
+                throw new Error('Unsupported image format. Please use PNG or JPG.');
             }
-        });
+
+            const imageWidth = parseInt(fontSize) * 2; // Scale based on fontSize
+            const imageHeight = (embeddedImage.height / embeddedImage.width) * imageWidth;
+
+            pages.forEach(page => {
+                const { width, height } = page.getSize();
+
+                const drawImageWatermark = (x, y) => {
+                    page.drawImage(embeddedImage, {
+                        x: x,
+                        y: y,
+                        width: imageWidth,
+                        height: imageHeight,
+                        opacity: parseFloat(opacity),
+                        rotate: degrees(parseInt(rotation)),
+                    });
+                };
+
+                if (isMosaic) {
+                    // Mosaic Pattern for images
+                    const gapX = imageWidth + 100;
+                    const gapY = imageHeight + 100;
+                    for (let x = -width; x < width * 2; x += gapX) {
+                        for (let y = -height; y < height * 2; y += gapY) {
+                            drawImageWatermark(x, y);
+                        }
+                    }
+                } else {
+                    // Standard Positioning for image
+                    let x, y;
+
+                    // Calculate X
+                    if (position.includes('left')) x = 20;
+                    else if (position.includes('right')) x = width - imageWidth - 20;
+                    else x = width / 2 - imageWidth / 2;
+
+                    // Calculate Y
+                    if (position.includes('top')) y = height - imageHeight - 20;
+                    else if (position.includes('bottom')) y = 20;
+                    else y = height / 2 - imageHeight / 2;
+
+                    drawImageWatermark(x, y);
+                }
+            });
+        } else {
+            // Handle TEXT watermark (original logic)
+            const font = await pdfDoc.embedFont('Helvetica-Bold');
+
+            // Convert Hex to RGB
+            const r = parseInt(color.slice(1, 3), 16) / 255;
+            const g = parseInt(color.slice(3, 5), 16) / 255;
+            const b = parseInt(color.slice(5, 7), 16) / 255;
+            const rgbColor = rgb(r, g, b);
+
+            pages.forEach(page => {
+                const { width, height } = page.getSize();
+                const textWidth = font.widthOfTextAtSize(watermarkText, parseInt(fontSize));
+                const textHeight = parseInt(fontSize);
+
+                const drawWatermark = (x, y) => {
+                    page.drawText(watermarkText, {
+                        x: x,
+                        y: y,
+                        size: parseInt(fontSize),
+                        font: font,
+                        opacity: parseFloat(opacity),
+                        rotate: degrees(parseInt(rotation)),
+                        color: rgbColor,
+                    });
+                };
+
+                if (isMosaic) {
+                    // Mosaic Pattern
+                    const gapX = textWidth + 100;
+                    const gapY = textHeight + 100;
+                    for (let x = -width; x < width * 2; x += gapX) {
+                        for (let y = -height; y < height * 2; y += gapY) {
+                            drawWatermark(x, y);
+                        }
+                    }
+                } else {
+                    // Standard Positioning
+                    let x, y;
+
+                    // Calculate X
+                    if (position.includes('left')) x = 20;
+                    else if (position.includes('right')) x = width - textWidth - 20;
+                    else x = width / 2 - textWidth / 2;
+
+                    // Calculate Y
+                    if (position.includes('top')) y = height - textHeight - 20;
+                    else if (position.includes('bottom')) y = 20;
+                    else y = height / 2 - textHeight / 2;
+
+                    drawWatermark(x, y);
+                }
+            });
+        }
 
         const pdfBytes = await pdfDoc.save();
         return new Blob([pdfBytes], { type: 'application/pdf' });

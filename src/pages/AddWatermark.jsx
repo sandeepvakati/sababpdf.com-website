@@ -46,16 +46,29 @@ const AddWatermark = () => {
     };
 
     const handleConvert = async () => {
-        if (!file || !watermarkText) return;
+        // Validation
+        if (!file) return;
+        if (watermarkType === 'text' && !watermarkText) {
+            alert('Please enter watermark text.');
+            return;
+        }
+        if (watermarkType === 'image' && !watermarkImage) {
+            alert('Please upload a watermark image.');
+            return;
+        }
 
         setIsProcessing(true);
         try {
-            const pdfBlob = await addWatermark(file, watermarkText, options);
+            const pdfBlob = await addWatermark(file, watermarkText, {
+                ...options,
+                watermarkType,
+                watermarkImage
+            });
             const url = URL.createObjectURL(pdfBlob);
             setDownloadUrl(url);
         } catch (error) {
             console.error('Error adding watermark:', error);
-            alert('Failed to add watermark.');
+            alert('Failed to add watermark: ' + error.message);
         } finally {
             setIsProcessing(false);
         }
