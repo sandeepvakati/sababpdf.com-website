@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import FileUploader from '../components/FileUploader';
 import { addWatermark } from '../utils/conversionUtils';
 import {
@@ -12,6 +12,7 @@ const AddWatermark = () => {
     const [file, setFile] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [downloadUrl, setDownloadUrl] = useState(null);
+    const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
 
     // State for options
     const [watermarkText, setWatermarkText] = useState('CONFIDENTIAL');
@@ -23,6 +24,17 @@ const AddWatermark = () => {
         position: 'center', // 'top-left', 'top-center', 'top-right', 'middle-left', 'center', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right'
         isMosaic: false
     });
+
+    // Create PDF preview URL when file is selected
+    useEffect(() => {
+        if (file) {
+            const url = URL.createObjectURL(file);
+            setPdfPreviewUrl(url);
+            return () => URL.revokeObjectURL(url);
+        } else {
+            setPdfPreviewUrl(null);
+        }
+    }, [file]);
 
     const handleFileSelected = (files) => {
         if (files.length > 0) {
@@ -118,29 +130,35 @@ const AddWatermark = () => {
                                     </button>
                                 </div>
 
-                                <div className="flex-1 bg-gray-100 rounded-xl flex items-center justify-center min-h-[300px] border-2 border-dashed border-gray-300 relative overflow-hidden">
-                                    {/* Watermark Preview */}
+                                <div className="flex-1 bg-gray-900 rounded-xl flex items-center justify-center min-h-[500px] border-2 border-gray-300 relative overflow-hidden">
+                                    {/* PDF Preview */}
+                                    {pdfPreviewUrl ? (
+                                        <iframe
+                                            src={`${pdfPreviewUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                                            className="w-full h-full absolute inset-0"
+                                            title="PDF Preview"
+                                        />
+                                    ) : (
+                                        <div className="text-gray-400 text-sm">Loading PDF...</div>
+                                    )}
+
+                                    {/* Watermark Overlay */}
                                     <div
                                         className="absolute pointer-events-none text-center select-none"
                                         style={{
                                             color: options.color,
                                             opacity: options.opacity,
-                                            transform: `rotate(${options.rotation}deg)`,
-                                            fontSize: `${Math.min(options.fontSize, 60)}px`, // Cap size for preview
+                                            fontSize: `${Math.min(options.fontSize, 80)}px`,
                                             fontWeight: 'bold',
-                                            top: options.position.includes('top') ? '15%' : options.position.includes('bottom') ? '75%' : '50%',
-                                            left: options.position.includes('left') ? '15%' : options.position.includes('right') ? '75%' : '50%',
+                                            top: options.position.includes('top') ? '15%' : options.position.includes('bottom') ? '85%' : '50%',
+                                            left: options.position.includes('left') ? '15%' : options.position.includes('right') ? '85%' : '50%',
                                             transform: `translate(-50%, -50%) rotate(${options.rotation}deg)`,
                                             whiteSpace: 'nowrap',
-                                            zIndex: 10
+                                            zIndex: 20,
+                                            textShadow: '0 0 10px rgba(0,0,0,0.3)'
                                         }}
                                     >
                                         {watermarkText || 'WATERMARK'}
-                                    </div>
-
-                                    {/* Background grid to simulate PDF page */}
-                                    <div className="absolute inset-0 opacity-10">
-                                        <div className="w-full h-full bg-white border border-gray-400 shadow-inner"></div>
                                     </div>
                                 </div>
                             </div>
