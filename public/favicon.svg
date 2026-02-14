@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Red PDF document background -->
+  <path d="M20 10 L70 10 L80 20 L80 90 L20 90 Z" fill="#EF4444"/>
+  
+  <!-- Folded corner -->
+  <path d="M70 10 L70 20 L80 20 Z" fill="#DC2626"/>
+  
+  <!-- White download arrow -->
+  <g fill="#FFFFFF">
+    <!-- Arrow shaft -->
+    <rect x="45" y="35" width="10" height="25" rx="2"/>
+    <!-- Arrow head -->
+    <path d="M35 55 L50 70 L65 55 Z"/>
+    <!-- Arrow base line -->
+    <rect x="35" y="72" width="30" height="4" rx="2"/>
+  </g>
+</svg>
