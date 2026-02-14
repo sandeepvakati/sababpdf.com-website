@@ -4,10 +4,11 @@ import * as pdfjsLib from 'pdfjs-dist';
 // Set worker path
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
-const PDFPreviewWithWatermark = ({ file, watermarkText, options }) => {
+const PDFPreviewWithWatermark = ({ file, watermarkText, watermarkType, watermarkImage, options }) => {
     const containerRef = useRef(null);
     const [numPages, setNumPages] = useState(0);
     const [renderedPages, setRenderedPages] = useState([]);
+    const [imageUrl, setImageUrl] = useState(null);
 
     useEffect(() => {
         if (!file) return;
@@ -55,6 +56,17 @@ const PDFPreviewWithWatermark = ({ file, watermarkText, options }) => {
 
         loadPDF();
     }, [file]);
+
+    // Create image URL for watermark
+    useEffect(() => {
+        if (watermarkImage) {
+            const url = URL.createObjectURL(watermarkImage);
+            setImageUrl(url);
+            return () => URL.revokeObjectURL(url);
+        } else {
+            setImageUrl(null);
+        }
+    }, [watermarkImage]);
 
     // Render mosaic watermark pattern
     const renderMosaicWatermark = (pageWidth, pageHeight) => {
@@ -122,17 +134,36 @@ const PDFPreviewWithWatermark = ({ file, watermarkText, options }) => {
                                 />
 
                                 {/* Watermark Overlay */}
-                                {options.isMosaic ? (
+                                {watermarkType === 'image' && imageUrl ? (
+                                    // Image watermark
+                                    <img
+                                        src={imageUrl}
+                                        alt="Watermark"
+                                        className="absolute pointer-events-none select-none"
+                                        style={{
+                                            opacity: options.opacity,
+                                            width: `${options.fontSize * 2}px`,
+                                            height: 'auto',
+                                            top: options.position.includes('top') ? '15%' :
+                                                options.position.includes('bottom') ? '85%' : '50%',
+                                            left: options.position.includes('left') ? '15%' :
+                                                options.position.includes('right') ? '85%' : '50%',
+                                            transform: `translate(-50%, -50%) rotate(${options.rotation}deg)`,
+                                            zIndex: 10,
+                                            filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.3))'
+                                        }}
+                                    />
+                                ) : options.isMosaic ? (
                                     // Mosaic pattern - multiple watermarks
                                     renderMosaicWatermark(pageData.width, pageData.height)
                                 ) : (
-                                    // Single watermark
+                                    // Single text watermark
                                     <div
                                         className="absolute pointer-events-none text-center select-none"
                                         style={{
                                             color: options.color,
                                             opacity: options.opacity,
-                                            fontSize: `${options.fontSize * 0.8}px`, // Scale down for grid view
+                                            fontSize: `${options.fontSize * 0.8}px`,
                                             fontWeight: 'bold',
                                             top: options.position.includes('top') ? '15%' :
                                                 options.position.includes('bottom') ? '85%' : '50%',

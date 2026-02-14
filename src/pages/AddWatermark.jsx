@@ -6,13 +6,17 @@ import {
     Stamp, Download, File, Trash2,
     Type, Layout, Droplet,
     AlignLeft, AlignCenter, AlignRight,
-    ArrowUp, ArrowDown, RotateCw, Grid
+    ArrowUp, ArrowDown, RotateCw, Grid, Image as ImageIcon
 } from 'lucide-react';
 
 const AddWatermark = () => {
     const [file, setFile] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [downloadUrl, setDownloadUrl] = useState(null);
+
+    // Watermark type: 'text' or 'image'
+    const [watermarkType, setWatermarkType] = useState('text');
+    const [watermarkImage, setWatermarkImage] = useState(null);
 
     // State for options
     const [watermarkText, setWatermarkText] = useState('CONFIDENTIAL');
@@ -124,6 +128,8 @@ const AddWatermark = () => {
                                     <PDFPreviewWithWatermark
                                         file={file}
                                         watermarkText={watermarkText}
+                                        watermarkType={watermarkType}
+                                        watermarkImage={watermarkImage}
                                         options={options}
                                     />
                                 </div>
@@ -131,17 +137,85 @@ const AddWatermark = () => {
 
                             {/* Right: Settings */}
                             <div className="w-full lg:w-96 bg-gray-50 p-6 rounded-xl border border-gray-200 space-y-6">
+                                {/* Watermark Type Selector */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                        <Type className="h-4 w-4" /> Text
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={watermarkText}
-                                        onChange={(e) => setWatermarkText(e.target.value)}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                                    />
+                                    <h3 className="text-sm font-bold text-gray-700 mb-3">Watermark options</h3>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            onClick={() => setWatermarkType('text')}
+                                            className={`relative p-4 rounded-lg border-2 transition-all ${watermarkType === 'text'
+                                                ? 'border-green-500 bg-green-50'
+                                                : 'border-gray-300 bg-white hover:border-gray-400'
+                                                }`}
+                                        >
+                                            {watermarkType === 'text' && (
+                                                <div className="absolute top-2 left-2 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                            )}
+                                            <Type className="h-8 w-8 mx-auto mb-2 text-gray-700" />
+                                            <p className="text-sm font-medium text-gray-700">Place text</p>
+                                        </button>
+
+                                        <button
+                                            onClick={() => setWatermarkType('image')}
+                                            className={`relative p-4 rounded-lg border-2 transition-all ${watermarkType === 'image'
+                                                ? 'border-green-500 bg-green-50'
+                                                : 'border-gray-300 bg-white hover:border-gray-400'
+                                                }`}
+                                        >
+                                            {watermarkType === 'image' && (
+                                                <div className="absolute top-2 left-2 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                            )}
+                                            <ImageIcon className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                                            <p className="text-sm font-medium text-gray-700">Place image</p>
+                                        </button>
+                                    </div>
                                 </div>
+
+                                {/* Text Watermark Settings */}
+                                {watermarkType === 'text' ? (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                                                <Type className="h-4 w-4" /> Text
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={watermarkText}
+                                                onChange={(e) => setWatermarkText(e.target.value)}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                            />
+                                        </div>
+                                    </>
+                                ) : (
+                                    /* Image Watermark Upload */
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                                            <ImageIcon className="h-4 w-4" /> Upload Image
+                                        </label>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                const imageFile = e.target.files[0];
+                                                if (imageFile) {
+                                                    setWatermarkImage(imageFile);
+                                                }
+                                            }}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                                        />
+                                        {watermarkImage && (
+                                            <p className="text-xs text-gray-500 mt-2">Selected: {watermarkImage.name}</p>
+                                        )}
+                                    </div>
+                                )}
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
