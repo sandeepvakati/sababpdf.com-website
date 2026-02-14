@@ -119,22 +119,28 @@ const AddWatermark = () => {
                                 </div>
 
                                 <div className="flex-1 bg-gray-100 rounded-xl flex items-center justify-center min-h-[300px] border-2 border-dashed border-gray-300 relative overflow-hidden">
-                                    <div className="text-gray-400 text-sm">Preview not available (Static Placeholder)</div>
-                                    {/* Simple visual representation of settings */}
+                                    {/* Watermark Preview */}
                                     <div
-                                        className="absolute pointer-events-none text-center"
+                                        className="absolute pointer-events-none text-center select-none"
                                         style={{
                                             color: options.color,
                                             opacity: options.opacity,
                                             transform: `rotate(${options.rotation}deg)`,
-                                            fontSize: `${Math.min(options.fontSize, 40)}px`, // Cap size for preview
+                                            fontSize: `${Math.min(options.fontSize, 60)}px`, // Cap size for preview
                                             fontWeight: 'bold',
-                                            top: options.position.includes('top') ? '10%' : options.position.includes('bottom') ? '80%' : '50%',
-                                            left: options.position.includes('left') ? '10%' : options.position.includes('right') ? '80%' : '50%',
-                                            transformOrigin: 'center'
+                                            top: options.position.includes('top') ? '15%' : options.position.includes('bottom') ? '75%' : '50%',
+                                            left: options.position.includes('left') ? '15%' : options.position.includes('right') ? '75%' : '50%',
+                                            transform: `translate(-50%, -50%) rotate(${options.rotation}deg)`,
+                                            whiteSpace: 'nowrap',
+                                            zIndex: 10
                                         }}
                                     >
-                                        {watermarkText}
+                                        {watermarkText || 'WATERMARK'}
+                                    </div>
+
+                                    {/* Background grid to simulate PDF page */}
+                                    <div className="absolute inset-0 opacity-10">
+                                        <div className="w-full h-full bg-white border border-gray-400 shadow-inner"></div>
                                     </div>
                                 </div>
                             </div>
