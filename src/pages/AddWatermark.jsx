@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import FileUploader from '../components/FileUploader';
+import PDFPreviewWithWatermark from '../components/PDFPreviewWithWatermark';
 import { addWatermark } from '../utils/conversionUtils';
 import {
     Stamp, Download, File, Trash2,
@@ -12,7 +13,6 @@ const AddWatermark = () => {
     const [file, setFile] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [downloadUrl, setDownloadUrl] = useState(null);
-    const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
 
     // State for options
     const [watermarkText, setWatermarkText] = useState('CONFIDENTIAL');
@@ -24,17 +24,6 @@ const AddWatermark = () => {
         position: 'center', // 'top-left', 'top-center', 'top-right', 'middle-left', 'center', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right'
         isMosaic: false
     });
-
-    // Create PDF preview URL when file is selected
-    useEffect(() => {
-        if (file) {
-            const url = URL.createObjectURL(file);
-            setPdfPreviewUrl(url);
-            return () => URL.revokeObjectURL(url);
-        } else {
-            setPdfPreviewUrl(null);
-        }
-    }, [file]);
 
     const handleFileSelected = (files) => {
         if (files.length > 0) {
@@ -130,36 +119,13 @@ const AddWatermark = () => {
                                     </button>
                                 </div>
 
-                                <div className="flex-1 bg-gray-900 rounded-xl flex items-center justify-center min-h-[500px] border-2 border-gray-300 relative overflow-hidden">
-                                    {/* PDF Preview */}
-                                    {pdfPreviewUrl ? (
-                                        <iframe
-                                            src={`${pdfPreviewUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                                            className="w-full h-full absolute inset-0"
-                                            title="PDF Preview"
-                                        />
-                                    ) : (
-                                        <div className="text-gray-400 text-sm">Loading PDF...</div>
-                                    )}
 
-                                    {/* Watermark Overlay */}
-                                    <div
-                                        className="absolute pointer-events-none text-center select-none"
-                                        style={{
-                                            color: options.color,
-                                            opacity: options.opacity,
-                                            fontSize: `${Math.min(options.fontSize, 80)}px`,
-                                            fontWeight: 'bold',
-                                            top: options.position.includes('top') ? '15%' : options.position.includes('bottom') ? '85%' : '50%',
-                                            left: options.position.includes('left') ? '15%' : options.position.includes('right') ? '85%' : '50%',
-                                            transform: `translate(-50%, -50%) rotate(${options.rotation}deg)`,
-                                            whiteSpace: 'nowrap',
-                                            zIndex: 20,
-                                            textShadow: '0 0 10px rgba(0,0,0,0.3)'
-                                        }}
-                                    >
-                                        {watermarkText || 'WATERMARK'}
-                                    </div>
+                                <div className="flex-1 rounded-xl min-h-[600px] border-2 border-gray-300 overflow-hidden">
+                                    <PDFPreviewWithWatermark
+                                        file={file}
+                                        watermarkText={watermarkText}
+                                        options={options}
+                                    />
                                 </div>
                             </div>
 
