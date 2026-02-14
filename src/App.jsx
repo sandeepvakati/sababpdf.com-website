@@ -10,6 +10,7 @@ import Signup from './pages/Signup';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import AboutUs from './pages/AboutUs';
+import Contact from './pages/Contact';
 import WordToPdf from './pages/WordToPdf';
 import PdfToWord from './pages/PdfToWord';
 import ExcelToPdf from './pages/ExcelToPdf';
@@ -69,6 +70,7 @@ function App() {
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/about-us" element={<AboutUs />} />
+            <Route path="/contact" element={<Contact />} />
           </Routes>
         </Layout>
       </Router>
