@@ -2,7 +2,7 @@ import FeatureCard from '../components/FeatureCard';
 import {
     Layers, Scissors, Minimize2, FileText, FileSpreadsheet, Image,
     FileImage, Presentation, RotateCw, Hash, Stamp, Lock, Unlock,
-    FileBadge, Crop, ArrowRightLeft, Scan, Camera, Wrench, Globe
+    FileBadge, Crop, ArrowRightLeft, Scan, Camera, Wrench, Globe, PenTool
 } from 'lucide-react';
 
 const tools = [
@@ -132,13 +132,7 @@ const tools = [
         to: '/add-page-numbers',
         color: 'bg-pink-600',
     },
-    {
-        title: 'Add Watermark',
-        description: 'Stamp your PDF with a text watermark.',
-        icon: Stamp,
-        to: '/add-watermark',
-        color: 'bg-purple-600',
-    },
+
     {
         title: 'Redact PDF',
         description: 'Permanently remove sensitive information from your PDFs.',
@@ -154,13 +148,7 @@ const tools = [
         color: 'bg-emerald-600',
     },
 
-    {
-        title: 'Scan to PDF',
-        description: 'Capture document scans from your mobile device and send them instantly to your browser.',
-        icon: Camera,
-        to: '/scan-pdf',
-        color: 'bg-orange-500',
-    },
+
     {
         title: 'Compare PDF',
         description: 'Show two PDF documents side by side to see the unexpected changes.',
@@ -174,6 +162,13 @@ const tools = [
         icon: Unlock,
         to: '/unlock-pdf',
         color: 'bg-cyan-600',
+    },
+    {
+        title: 'Signature Compressor',
+        description: 'Compress, crop, and resize signature images to exact KB/MB sizes.',
+        icon: PenTool,
+        to: '/signature-compressor',
+        color: 'bg-purple-500',
     },
 ];
 

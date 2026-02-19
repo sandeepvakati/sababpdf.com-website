@@ -30,10 +30,10 @@ import AddWatermark from './pages/AddWatermark';
 import ProtectPdf from './pages/ProtectPdf';
 import UnlockPdf from './pages/UnlockPdf';
 import ComparePdf from './pages/ComparePdf';
-import ScanToPdf from './pages/ScanToPdf';
-import MobileScan from './pages/MobileScan'; // New
+
 import RepairPdf from './pages/RepairPdf'; // New
 import HtmlToPdf from './pages/HtmlToPdf'; // New
+import SignatureCompressor from './pages/SignatureCompressor';
 
 function App() {
   return (
@@ -66,9 +66,9 @@ function App() {
             <Route path="/protect-pdf" element={<ProtectPdf />} />
             <Route path="/unlock-pdf" element={<UnlockPdf />} />
             <Route path="/compare-pdf" element={<ComparePdf />} />
+            <Route path="/signature-compressor" element={<SignatureCompressor />} />
 
-            <Route path="/scan-pdf" element={<ScanToPdf />} />
-            <Route path="/scan-mobile/:sessionId" element={<MobileScan />} />
+
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/about-us" element={<AboutUs />} />

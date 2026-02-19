@@ -5,7 +5,7 @@ import {
     Layers, Scissors, Minimize2, FileBadge, Crop,
     Image, FileSpreadsheet, Presentation,
     RotateCw, Hash, Stamp, ArrowRightLeft,
-    FileImage, Lock, Unlock, Scan, Camera, Wrench, Globe, MoreVertical
+    FileImage, Lock, Unlock, Scan, Camera, Wrench, Globe, MoreVertical, PenTool
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -25,6 +25,7 @@ const Navbar = () => {
             { name: 'Repair PDF', to: '/repair-pdf', icon: Wrench, color: 'text-gray-500' },
             { name: 'Add Watermark', to: '/add-watermark', icon: Stamp, color: 'text-purple-600' }, // New
             { name: 'Crop PDF', to: '/crop-pdf', icon: Crop, color: 'text-orange-500' },
+            { name: 'Signature Compressor', to: '/signature-compressor', icon: PenTool, color: 'text-purple-500' },
         ],
         convertToPdf: [
             { name: 'JPG to PDF', to: '/jpg-to-pdf', icon: Image, color: 'text-yellow-500' },
@@ -32,7 +33,7 @@ const Navbar = () => {
             { name: 'Excel to PDF', to: '/excel-to-pdf', icon: FileSpreadsheet, color: 'text-green-600' },
             { name: 'PowerPoint to PDF', to: '/powerpoint-to-pdf', icon: Presentation, color: 'text-orange-600' },
             { name: 'HTML to PDF', to: '/html-to-pdf', icon: Globe, color: 'text-blue-600' },
-            { name: 'Scan to PDF', to: '/scan-pdf', icon: Camera, color: 'text-orange-500' },
+
         ],
         convertFromPdf: [
             { name: 'PDF to JPG', to: '/pdf-to-jpg', icon: FileImage, color: 'text-yellow-500' },

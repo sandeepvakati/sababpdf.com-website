@@ -14,6 +14,32 @@ export const mergePdfs = async (files) => {
     return new Blob([pdfBytes], { type: 'application/pdf' });
 };
 
+/**
+ * Merge individual pages from multiple PDFs in a custom order.
+ * @param {Array<{ file: File, pageIndex: number }>} pageOrder - ordered list of page references
+ * @returns {Promise<Blob>} merged PDF blob
+ */
+export const mergePages = async (pageOrder) => {
+    const mergedPdf = await PDFDocument.create();
+
+    // Cache loaded PDFs by file reference to avoid re-loading the same file
+    const pdfCache = new Map();
+
+    for (const { file, pageIndex } of pageOrder) {
+        let pdfDoc = pdfCache.get(file);
+        if (!pdfDoc) {
+            const arrayBuffer = await file.arrayBuffer();
+            pdfDoc = await PDFDocument.load(arrayBuffer);
+            pdfCache.set(file, pdfDoc);
+        }
+        const [copiedPage] = await mergedPdf.copyPages(pdfDoc, [pageIndex]);
+        mergedPdf.addPage(copiedPage);
+    }
+
+    const pdfBytes = await mergedPdf.save();
+    return new Blob([pdfBytes], { type: 'application/pdf' });
+};
+
 export const splitPdf = async (file, pageIndices) => {
     const arrayBuffer = await file.arrayBuffer();
     const pdfDoc = await PDFDocument.load(arrayBuffer);
