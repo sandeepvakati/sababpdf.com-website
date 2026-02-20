@@ -2,10 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import FileUploader from '../components/FileUploader';
 import { Minimize2, Download, FileText, Trash2, X, ChevronLeft, ChevronRight, Eye, Zap, Shield, Gauge, Pencil, RotateCcw } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
 import { PDFDocument } from 'pdf-lib';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+pdfjsLib.GlobalWorkerOptions.workerSrc = https://cdnjs.cloudflare.com/ajax/libs/pdf.js//pdf.worker.min.mjs;
 
 // ─── Thumbnail ──────────────────────────────────────────────────────────────────
 const PageThumbnail = ({ pageData }) => {

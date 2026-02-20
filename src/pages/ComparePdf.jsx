@@ -4,8 +4,8 @@ import * as pdfjsLib from 'pdfjs-dist';
 
 // Configure PDF.js worker
 // Configure PDF.js worker
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = https://cdnjs.cloudflare.com/ajax/libs/pdf.js//pdf.worker.min.mjs;
 
 const ComparePdf = () => {
     const [file1, setFile1] = useState(null);

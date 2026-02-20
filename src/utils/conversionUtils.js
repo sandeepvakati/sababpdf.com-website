@@ -9,8 +9,8 @@ import PptxGenJS from 'pptxgenjs';
 import JSZip from 'jszip';
 
 // Configure PDF.js worker
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = https://cdnjs.cloudflare.com/ajax/libs/pdf.js//pdf.worker.min.mjs;
 /**
  * Converts Image files (JPG, PNG) to PDF
  * @param {File[]} files - Array of image files

@@ -3,9 +3,9 @@ import FileUploader from '../components/FileUploader';
 import { mergePdfs, mergePages } from '../utils/pdfUtils';
 import { Layers, Download, X, Plus, FileText, ChevronLeft, ChevronRight, Eye, Pencil, RotateCcw } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = https://cdnjs.cloudflare.com/ajax/libs/pdf.js//pdf.worker.min.mjs;
 
 // ─── Thumbnail ──────────────────────────────────────────────────────────────────
 const PageThumbnail = ({ pageData }) => {

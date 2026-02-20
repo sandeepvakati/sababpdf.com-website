@@ -3,9 +3,9 @@ import FileUploader from '../components/FileUploader';
 import { splitPdf } from '../utils/pdfUtils';
 import { Scissors, Download, X, FileText, ChevronLeft, ChevronRight, Eye, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = https://cdnjs.cloudflare.com/ajax/libs/pdf.js//pdf.worker.min.mjs;
 
 // ─── Thumbnail ──────────────────────────────────────────────────────────────────
 const PageThumbnail = ({ pageData }) => {
