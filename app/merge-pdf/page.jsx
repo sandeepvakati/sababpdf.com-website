@@ -6,7 +6,7 @@ import { mergePdfs, mergePages } from '@/utils/pdfUtils';
 import { Layers, Download, X, Plus, ChevronLeft, ChevronRight, Eye, Pencil, RotateCcw } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 const mergePdfContent = {
     howToUse: [

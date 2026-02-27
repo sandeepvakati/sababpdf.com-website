@@ -7,7 +7,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 
 import { PDFDocument } from 'pdf-lib';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 const compressPdfContent = {
     howToUse: [

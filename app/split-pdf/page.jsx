@@ -6,7 +6,7 @@ import { splitPdf } from '@/utils/pdfUtils';
 import { Scissors, Download, X, FileText, ChevronLeft, ChevronRight, Eye, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 const splitPdfContent = {
     howToUse: [
