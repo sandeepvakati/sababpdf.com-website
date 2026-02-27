@@ -6,7 +6,9 @@ import { mergePdfs, mergePages } from '@/utils/pdfUtils';
 import { Layers, Download, X, Plus, ChevronLeft, ChevronRight, Eye, Pencil, RotateCcw } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+if (typeof window !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+}
 
 const mergePdfContent = {
     howToUse: [
@@ -144,13 +146,14 @@ export default function MergePdfPage() {
             for (const file of newFiles) {
                 try {
                     const arrayBuffer = await file.arrayBuffer();
+                    const uint8Array = new Uint8Array(arrayBuffer);
                     let pdfDoc;
                     try {
-                        pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer, password: '' }).promise;
+                        pdfDoc = await pdfjsLib.getDocument({ data: uint8Array.slice() }).promise;
                     } catch (firstErr) {
-                        // Retry without worker for problematic PDFs
+                        // Retry with extra options for problematic PDFs
                         try {
-                            pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0), password: '', isEvalSupported: false, disableAutoFetch: true, disableStream: true }).promise;
+                            pdfDoc = await pdfjsLib.getDocument({ data: uint8Array.slice(), isEvalSupported: false, disableAutoFetch: true, disableStream: true }).promise;
                         } catch (retryErr) {
                             throw retryErr;
                         }

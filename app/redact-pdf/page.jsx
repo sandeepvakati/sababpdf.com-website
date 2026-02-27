@@ -45,7 +45,7 @@ const redactPdfContent = {
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined' && 'Worker' in window) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 }
 
 const RedactPdf = () => {
@@ -69,12 +69,13 @@ const RedactPdf = () => {
             const loadPdf = async () => {
                 try {
                     const arrayBuffer = await file.arrayBuffer();
+                    const uint8Array = new Uint8Array(arrayBuffer);
                     let pdf;
                     try {
-                        pdf = await pdfjsLib.getDocument({ data: arrayBuffer, password: '' }).promise;
+                        pdf = await pdfjsLib.getDocument({ data: uint8Array.slice() }).promise;
                     } catch (firstErr) {
                         try {
-                            pdf = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0), password: '', isEvalSupported: false, disableAutoFetch: true, disableStream: true }).promise;
+                            pdf = await pdfjsLib.getDocument({ data: uint8Array.slice(), isEvalSupported: false, disableAutoFetch: true, disableStream: true }).promise;
                         } catch (retryErr) {
                             throw retryErr;
                         }

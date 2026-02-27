@@ -44,7 +44,7 @@ const comparePdfContent = {
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined' && 'Worker' in window) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 }
 
 const ComparePdf = () => {
@@ -67,20 +67,22 @@ const ComparePdf = () => {
             if (file1 && file2) {
                 try {
                     const buffer1 = await file1.arrayBuffer();
+                    const uint8_1 = new Uint8Array(buffer1);
                     let doc1;
                     try {
-                        doc1 = await pdfjsLib.getDocument({ data: buffer1, password: '' }).promise;
+                        doc1 = await pdfjsLib.getDocument({ data: uint8_1.slice() }).promise;
                     } catch (e) {
-                        doc1 = await pdfjsLib.getDocument({ data: buffer1.slice(0), password: '', isEvalSupported: false, disableAutoFetch: true, disableStream: true }).promise;
+                        doc1 = await pdfjsLib.getDocument({ data: uint8_1.slice(), isEvalSupported: false, disableAutoFetch: true, disableStream: true }).promise;
                     }
                     setPdf1(doc1);
 
                     const buffer2 = await file2.arrayBuffer();
+                    const uint8_2 = new Uint8Array(buffer2);
                     let doc2;
                     try {
-                        doc2 = await pdfjsLib.getDocument({ data: buffer2, password: '' }).promise;
+                        doc2 = await pdfjsLib.getDocument({ data: uint8_2.slice() }).promise;
                     } catch (e) {
-                        doc2 = await pdfjsLib.getDocument({ data: buffer2.slice(0), password: '', isEvalSupported: false, disableAutoFetch: true, disableStream: true }).promise;
+                        doc2 = await pdfjsLib.getDocument({ data: uint8_2.slice(), isEvalSupported: false, disableAutoFetch: true, disableStream: true }).promise;
                     }
                     setPdf2(doc2);
 

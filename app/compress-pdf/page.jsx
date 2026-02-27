@@ -7,7 +7,9 @@ import * as pdfjsLib from 'pdfjs-dist';
 
 import { PDFDocument } from 'pdf-lib';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+if (typeof window !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+}
 
 const compressPdfContent = {
     howToUse: [
@@ -213,12 +215,13 @@ export default function CompressPdfPage() {
 
         try {
             const arrayBuffer = await selectedFile.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
             let doc;
             try {
-                doc = await pdfjsLib.getDocument({ data: arrayBuffer, password: '' }).promise;
+                doc = await pdfjsLib.getDocument({ data: uint8Array.slice() }).promise;
             } catch (firstErr) {
                 try {
-                    doc = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0), password: '', isEvalSupported: false, disableAutoFetch: true, disableStream: true }).promise;
+                    doc = await pdfjsLib.getDocument({ data: uint8Array.slice(), isEvalSupported: false, disableAutoFetch: true, disableStream: true }).promise;
                 } catch (retryErr) {
                     throw retryErr;
                 }
