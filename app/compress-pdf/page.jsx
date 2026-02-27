@@ -213,12 +213,21 @@ export default function CompressPdfPage() {
 
         try {
             const arrayBuffer = await selectedFile.arrayBuffer();
-            const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let doc;
+            try {
+                doc = await pdfjsLib.getDocument({ data: arrayBuffer, password: '' }).promise;
+            } catch (firstErr) {
+                try {
+                    doc = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0), password: '', isEvalSupported: false, disableAutoFetch: true, disableStream: true }).promise;
+                } catch (retryErr) {
+                    throw retryErr;
+                }
+            }
             setPdfDoc(doc);
             setPageCount(doc.numPages);
         } catch (error) {
             console.error('Error reading PDF:', error);
-            alert('Invalid PDF file.');
+            alert('Failed to load PDF. Make sure it\'s a valid PDF file and not password-protected.');
             setFile(null);
         } finally {
             setIsLoading(false);

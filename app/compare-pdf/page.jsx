@@ -67,11 +67,21 @@ const ComparePdf = () => {
             if (file1 && file2) {
                 try {
                     const buffer1 = await file1.arrayBuffer();
-                    const doc1 = await pdfjsLib.getDocument({ data: buffer1 }).promise;
+                    let doc1;
+                    try {
+                        doc1 = await pdfjsLib.getDocument({ data: buffer1, password: '' }).promise;
+                    } catch (e) {
+                        doc1 = await pdfjsLib.getDocument({ data: buffer1.slice(0), password: '', isEvalSupported: false, disableAutoFetch: true, disableStream: true }).promise;
+                    }
                     setPdf1(doc1);
 
                     const buffer2 = await file2.arrayBuffer();
-                    const doc2 = await pdfjsLib.getDocument({ data: buffer2 }).promise;
+                    let doc2;
+                    try {
+                        doc2 = await pdfjsLib.getDocument({ data: buffer2, password: '' }).promise;
+                    } catch (e) {
+                        doc2 = await pdfjsLib.getDocument({ data: buffer2.slice(0), password: '', isEvalSupported: false, disableAutoFetch: true, disableStream: true }).promise;
+                    }
                     setPdf2(doc2);
 
                     // Use the max page count of the two
@@ -79,7 +89,7 @@ const ComparePdf = () => {
                     setCurrentPage(1);
                 } catch (error) {
                     console.error("Error loading PDFs:", error);
-                    alert("Error loading PDF files. Please try again.");
+                    alert("Failed to load PDF files. Make sure they are valid PDFs and not password-protected.");
                 }
             }
         };

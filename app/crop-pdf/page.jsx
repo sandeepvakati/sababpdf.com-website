@@ -105,13 +105,21 @@ const CropPdf = () => {
             const loadPdf = async () => {
                 try {
                     const arrayBuffer = await file.arrayBuffer();
-                    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-                    const pdf = await loadingTask.promise;
+                    let pdf;
+                    try {
+                        pdf = await pdfjsLib.getDocument({ data: arrayBuffer, password: '' }).promise;
+                    } catch (firstErr) {
+                        try {
+                            pdf = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0), password: '', isEvalSupported: false, disableAutoFetch: true, disableStream: true }).promise;
+                        } catch (retryErr) {
+                            throw retryErr;
+                        }
+                    }
                     setPdfDocument(pdf);
-                    // Reset selection when file loads
                     setCropSelection(null);
                 } catch (error) {
                     console.error("Error loading PDF:", error);
+                    alert('Failed to load PDF. Make sure it\'s a valid PDF file and not password-protected.');
                 }
             };
             loadPdf();
