@@ -9,6 +9,7 @@ const Footer = () => {
                     <div className="flex space-x-6">
                         <Link href="/about-us" className="text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors">About Us</Link>
                         <Link href="/blog" className="text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors">Blog</Link>
+                        <Link href="/faq" className="text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors">FAQ</Link>
                         <Link href="/contact" className="text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors">Contact</Link>
                         <Link href="/privacy-policy" className="text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors">Privacy Policy</Link>
                         <Link href="/terms-of-service" className="text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors">Terms of Service</Link>
