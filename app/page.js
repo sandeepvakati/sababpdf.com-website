@@ -1,65 +1,194 @@
-import Image from "next/image";
+'use client';
+import FeatureCard from '@/components/FeatureCard';
+import {
+  Layers, Scissors, Minimize2, FileText, FileSpreadsheet, Image,
+  FileImage, Presentation, RotateCw, Hash, Stamp, Lock, Unlock,
+  FileBadge, Crop, ArrowRightLeft, Wrench, Globe, PenTool
+} from 'lucide-react';
+
+const tools = [
+  {
+    title: 'Merge PDF',
+    description: 'Combine PDFs in the order you want with the easiest PDF merger available.',
+    icon: Layers,
+    href: '/merge-pdf',
+    color: 'bg-red-500',
+  },
+  {
+    title: 'Split PDF',
+    description: 'Separate one page or a whole set for easy conversion into independent PDF files.',
+    icon: Scissors,
+    href: '/split-pdf',
+    color: 'bg-green-500',
+  },
+  {
+    title: 'Compress PDF',
+    description: 'Reduce file size while optimizing for maximal PDF quality.',
+    icon: Minimize2,
+    href: '/compress-pdf',
+    color: 'bg-blue-500',
+  },
+  {
+    title: 'Repair PDF',
+    description: 'Recover data from a corrupted or damaged PDF file.',
+    icon: Wrench,
+    href: '/repair-pdf',
+    color: 'bg-gray-500',
+  },
+  {
+    title: 'Add Watermark',
+    description: 'Stamp an image or text over your PDF in seconds. Choose the typography, transparency and position.',
+    icon: Stamp,
+    href: '/add-watermark',
+    color: 'bg-purple-600',
+  },
+  {
+    title: 'PDF to PDF/A',
+    description: 'Convert PDF documents to PDF/A for archiving and long-term preservation.',
+    icon: FileBadge,
+    href: '/pdf-to-pdfa',
+    color: 'bg-indigo-500',
+  },
+  {
+    title: 'Crop PDF',
+    description: 'Trim the margins of your PDF pages.',
+    icon: Crop,
+    href: '/crop-pdf',
+    color: 'bg-orange-500',
+  },
+  {
+    title: 'HTML to PDF',
+    description: 'Convert webpages in HTML to PDF.',
+    icon: Globe,
+    href: '/html-to-pdf',
+    color: 'bg-blue-600',
+  },
+  {
+    title: 'Word to PDF',
+    description: 'Convert your DOC and DOCX files to PDF instantly.',
+    icon: FileText,
+    href: '/word-to-pdf',
+    color: 'bg-blue-600',
+  },
+  {
+    title: 'PDF to Word',
+    description: 'Convert your PDF files to editable DOCX documents.',
+    icon: FileText,
+    href: '/pdf-to-word',
+    color: 'bg-blue-600',
+  },
+  {
+    title: 'Excel to PDF',
+    description: 'Convert your Excel spreadsheets to PDF instantly.',
+    icon: FileSpreadsheet,
+    href: '/excel-to-pdf',
+    color: 'bg-green-600',
+  },
+  {
+    title: 'PowerPoint to PDF',
+    description: 'Convert your PowerPoint presentations to PDF.',
+    icon: Presentation,
+    href: '/powerpoint-to-pdf',
+    color: 'bg-orange-600',
+  },
+  {
+    title: 'PDF to Excel',
+    description: 'Convert your PDF files to editable Excel spreadsheets.',
+    icon: FileSpreadsheet,
+    href: '/pdf-to-excel',
+    color: 'bg-green-600',
+  },
+  {
+    title: 'JPG to PDF',
+    description: 'Convert valid JPG images to PDF documents.',
+    icon: Image,
+    href: '/jpg-to-pdf',
+    color: 'bg-yellow-500',
+  },
+  {
+    title: 'PDF to JPG',
+    description: 'Extract PDF pages as JPG images or convert single pages.',
+    icon: FileImage,
+    href: '/pdf-to-jpg',
+    color: 'bg-yellow-500',
+  },
+  {
+    title: 'PDF to PowerPoint',
+    description: 'Convert your PDF files to editable PowerPoint presentations.',
+    icon: Presentation,
+    href: '/pdf-to-powerpoint',
+    color: 'bg-orange-600',
+  },
+  {
+    title: 'Rotate PDF',
+    description: 'Rotate your PDF pages permanently.',
+    icon: RotateCw,
+    href: '/rotate-pdf',
+    color: 'bg-indigo-600',
+  },
+  {
+    title: 'Add Page Numbers',
+    description: 'Add page numbers to your PDF document with ease.',
+    icon: Hash,
+    href: '/add-page-numbers',
+    color: 'bg-pink-600',
+  },
+  {
+    title: 'Redact PDF',
+    description: 'Permanently remove sensitive information from your PDFs.',
+    icon: FileBadge,
+    href: '/redact-pdf',
+    color: 'bg-gray-800',
+  },
+  {
+    title: 'Protect PDF',
+    description: 'Encrypt your PDF with a password.',
+    icon: Lock,
+    href: '/protect-pdf',
+    color: 'bg-emerald-600',
+  },
+  {
+    title: 'Compare PDF',
+    description: 'Show two PDF documents side by side to see the unexpected changes.',
+    icon: ArrowRightLeft,
+    href: '/compare-pdf',
+    color: 'bg-pink-500',
+  },
+  {
+    title: 'Unlock PDF',
+    description: 'Remove password and restrictions from your PDF.',
+    icon: Unlock,
+    href: '/unlock-pdf',
+    color: 'bg-cyan-600',
+  },
+  {
+    title: 'Signature Compressor',
+    description: 'Compress, crop, and resize signature images to exact KB/MB sizes.',
+    icon: PenTool,
+    href: '/signature-compressor',
+    color: 'bg-purple-500',
+  },
+];
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
+    <div className="bg-gray-50 py-16 flex-grow">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
+            Every tool you need to work with PDFs in one place
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto font-light">
+            Every tool you need to use PDFs, at your fingertips. All are 100% FREE and easy to use! Merge, split, compress, convert, rotate, unlock and watermark PDFs with just a few clicks.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+          {tools.map((tool) => (
+            <FeatureCard key={tool.title} {...tool} />
+          ))}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

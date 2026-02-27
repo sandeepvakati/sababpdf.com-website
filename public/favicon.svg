@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Red rounded square background -->
+  <rect x="5" y="5" width="90" height="90" rx="25" ry="25" fill="#EF4444"/>
+  
+  <!-- White document icon -->
+  <g transform="translate(25, 25) scale(0.5)">
+    <!-- Document Body -->
+    <path d="M10 0 L60 0 L90 30 L90 100 L10 100 Z" fill="#FFFFFF"/>
+    <!-- Folded Corner Detail -->
+    <path d="M60 0 L60 30 L90 30 Z" fill="#E5E7EB"/>
+    <!-- Text Lines -->
+    <rect x="25" y="40" width="50" height="8" rx="2" fill="#EF4444" opacity="0.2"/>
+    <rect x="25" y="55" width="50" height="8" rx="2" fill="#EF4444" opacity="0.2"/>
+    <rect x="25" y="70" width="40" height="8" rx="2" fill="#EF4444" opacity="0.2"/>
+  </g>
+</svg>

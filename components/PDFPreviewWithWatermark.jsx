@@ -1,0 +1,187 @@
+'use client';
+import { useEffect, useRef, useState } from 'react';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Set worker path
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+const PDFPreviewWithWatermark = ({ file, watermarkText, watermarkType, watermarkImage, options }) => {
+    const containerRef = useRef(null);
+    const [numPages, setNumPages] = useState(0);
+    const [renderedPages, setRenderedPages] = useState([]);
+    const [imageUrl, setImageUrl] = useState(null);
+
+    useEffect(() => {
+        if (!file) return;
+
+        const loadPDF = async () => {
+            try {
+                const fileReader = new FileReader();
+
+                fileReader.onload = async function () {
+                    const typedarray = new Uint8Array(this.result);
+                    const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                    setNumPages(pdf.numPages);
+
+                    const pages = [];
+                    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                        const page = await pdf.getPage(pageNum);
+                        const viewport = page.getViewport({ scale: 0.8 });
+
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+
+                        await page.render({
+                            canvasContext: context,
+                            viewport: viewport
+                        }).promise;
+
+                        pages.push({
+                            pageNum,
+                            canvas,
+                            width: viewport.width,
+                            height: viewport.height
+                        });
+                    }
+                    setRenderedPages(pages);
+                };
+
+                fileReader.readAsArrayBuffer(file);
+            } catch (error) {
+                console.error('Error loading PDF:', error);
+            }
+        };
+
+        loadPDF();
+    }, [file]);
+
+    useEffect(() => {
+        if (watermarkImage) {
+            const url = URL.createObjectURL(watermarkImage);
+            setImageUrl(url);
+            return () => URL.revokeObjectURL(url);
+        } else {
+            setImageUrl(null);
+        }
+    }, [watermarkImage]);
+
+    const renderMosaicWatermark = (pageWidth, pageHeight) => {
+        const watermarks = [];
+        const spacing = 200;
+
+        for (let y = 0; y < pageHeight; y += spacing) {
+            for (let x = 0; x < pageWidth; x += spacing) {
+                watermarks.push(
+                    <div
+                        key={`${x}-${y}`}
+                        className="absolute pointer-events-none text-center select-none"
+                        style={{
+                            color: options.color,
+                            opacity: options.opacity,
+                            fontSize: `${options.fontSize}px`,
+                            fontWeight: 'bold',
+                            top: `${y}px`,
+                            left: `${x}px`,
+                            transform: `rotate(${options.rotation}deg)`,
+                            whiteSpace: 'nowrap',
+                            zIndex: 10,
+                            textShadow: '0 0 10px rgba(0,0,0,0.3)'
+                        }}
+                    >
+                        {watermarkText || 'WATERMARK'}
+                    </div>
+                );
+            }
+        }
+        return watermarks;
+    };
+
+    return (
+        <div
+            ref={containerRef}
+            className="w-full h-full overflow-y-auto bg-gray-100 rounded-xl p-6"
+        >
+            {renderedPages.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                        <p>Loading PDF pages...</p>
+                    </div>
+                </div>
+            ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {renderedPages.map((pageData) => (
+                        <div
+                            key={pageData.pageNum}
+                            className="relative bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer border-2 border-gray-200 hover:border-purple-400"
+                        >
+                            <div className="relative" style={{ aspectRatio: `${pageData.width}/${pageData.height}` }}>
+                                <canvas
+                                    ref={(el) => {
+                                        if (el && pageData.canvas) {
+                                            el.width = pageData.canvas.width;
+                                            el.height = pageData.canvas.height;
+                                            const ctx = el.getContext('2d');
+                                            ctx.drawImage(pageData.canvas, 0, 0);
+                                        }
+                                    }}
+                                    className="w-full h-full"
+                                />
+
+                                {watermarkType === 'image' && imageUrl ? (
+                                    <img
+                                        src={imageUrl}
+                                        alt="Watermark"
+                                        className="absolute pointer-events-none select-none"
+                                        style={{
+                                            opacity: options.opacity,
+                                            width: `${options.fontSize * 2}px`,
+                                            height: 'auto',
+                                            top: options.position.includes('top') ? '15%' :
+                                                options.position.includes('bottom') ? '85%' : '50%',
+                                            left: options.position.includes('left') ? '15%' :
+                                                options.position.includes('right') ? '85%' : '50%',
+                                            transform: `translate(-50%, -50%) rotate(${options.rotation}deg)`,
+                                            zIndex: 10,
+                                            filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.3))'
+                                        }}
+                                    />
+                                ) : options.isMosaic ? (
+                                    renderMosaicWatermark(pageData.width, pageData.height)
+                                ) : (
+                                    <div
+                                        className="absolute pointer-events-none text-center select-none"
+                                        style={{
+                                            color: options.color,
+                                            opacity: options.opacity,
+                                            fontSize: `${options.fontSize * 0.8}px`,
+                                            fontWeight: 'bold',
+                                            top: options.position.includes('top') ? '15%' :
+                                                options.position.includes('bottom') ? '85%' : '50%',
+                                            left: options.position.includes('left') ? '15%' :
+                                                options.position.includes('right') ? '85%' : '50%',
+                                            transform: `translate(-50%, -50%) rotate(${options.rotation}deg)`,
+                                            whiteSpace: 'nowrap',
+                                            zIndex: 10,
+                                            textShadow: '0 0 10px rgba(0,0,0,0.3)'
+                                        }}
+                                    >
+                                        {watermarkText || 'WATERMARK'}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="absolute top-2 left-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-lg">
+                                {pageData.pageNum}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default PDFPreviewWithWatermark;
