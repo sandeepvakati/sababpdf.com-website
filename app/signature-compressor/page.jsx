@@ -284,11 +284,13 @@ const SignatureCompressor = () => {
                 srcW = Math.round(cropBox.width * scaleX);
                 srcH = Math.round(cropBox.height * scaleY);
 
-                // Clamp to image bounds
+                // Clamp to image bounds properly maintaining right/bottom
+                const right = srcX + srcW;
+                const bottom = srcY + srcH;
                 srcX = Math.max(0, srcX);
                 srcY = Math.max(0, srcY);
-                srcW = Math.min(srcW, img.naturalWidth - srcX);
-                srcH = Math.min(srcH, img.naturalHeight - srcY);
+                srcW = Math.max(1, Math.min(right - srcX, img.naturalWidth - srcX));
+                srcH = Math.max(1, Math.min(bottom - srcY, img.naturalHeight - srcY));
             } else if (activeTab === 'crop' && selectedCrop !== 'free') {
                 const preset = cropPresets.find(p => p.id === selectedCrop);
                 if (preset && preset.width && preset.height) {
@@ -323,8 +325,8 @@ const SignatureCompressor = () => {
 
             // Handle rotation
             const isRotated = rotation === 90 || rotation === 270;
-            canvas.width = isRotated ? outH : outW;
-            canvas.height = isRotated ? outW : outH;
+            canvas.width = Math.max(1, isRotated ? outH : outW);
+            canvas.height = Math.max(1, isRotated ? outW : outH);
 
             ctx.save();
             ctx.translate(canvas.width / 2, canvas.height / 2);
@@ -363,6 +365,10 @@ const SignatureCompressor = () => {
                 }
 
                 const candidateBlob = await new Promise((resolve) => currentCanvas.toBlob(resolve, format, quality));
+
+                if (!candidateBlob) {
+                    throw new Error("Failed to generate image blob. Dimensions might be invalid.");
+                }
 
                 if (attempt === 0) finalBlob = candidateBlob; // Fallback
 
