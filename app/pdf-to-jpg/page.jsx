@@ -1,9 +1,48 @@
 'use client';
 import { useState } from 'react';
 import FileUploader from '@/components/FileUploader';
+import ToolPageContent from '@/components/ToolPageContent';
 import { convertPdfToImages } from '@/utils/conversionUtils';
 import { FileImage, Download, File, Trash2, Archive } from 'lucide-react';
 import JSZip from 'jszip';
+
+const pdfToJpgContent = {
+    howToUse: [
+        { title: 'Upload Your PDF', description: 'Click the upload area or drag and drop your PDF file. SababPDF will read all pages from the document and prepare them for conversion to high-quality JPG images.' },
+        { title: 'Convert All Pages', description: 'Click the "Convert to JPG" button. SababPDF renders each page of your PDF as a high-resolution JPG image. For single-page PDFs, you get one image. For multi-page PDFs, all images are automatically packaged into a ZIP file.' },
+        { title: 'Download Your Images', description: 'For single-page PDFs, download the JPG directly. For multi-page PDFs, download a ZIP file containing all page images. Extract the ZIP to access individual JPG files for each page.' },
+    ],
+    whyUseThis: [
+        { title: 'High-Resolution Output', description: 'Every PDF page is rendered as a high-quality JPG image with sharp text and clear graphics. The output is suitable for presentations, social media, printing, and web use.' },
+        { title: 'Automatic ZIP Packaging', description: 'When converting multi-page PDFs, SababPDF automatically packages all images into a convenient ZIP file. No need to download pages one by one — get everything in a single click.' },
+        { title: 'Universal Image Format', description: 'JPG images work everywhere — social media, messaging apps, presentations, websites, and print shops. Convert your PDF content into the world\'s most compatible image format.' },
+        { title: 'Browser-Based Privacy', description: 'The entire conversion process happens in your browser. Your PDF pages are rendered locally and are never sent to any server, making it safe for confidential and sensitive documents.' },
+    ],
+    tips: [
+        'For presentations, convert your PDF slides to JPG to easily embed them in PowerPoint, Google Slides, or social media posts.',
+        'If you need only specific pages as images, split your PDF first using our Split PDF tool, then convert the extracted pages to JPG.',
+        'The output JPG files are high resolution and may be large. Use an image compression tool if you need to reduce file sizes for web use.',
+        'For scanned documents, converting PDF to JPG gives you individual page images that can be easily shared via messaging apps.',
+        'If you need PNG format instead of JPG (for transparency support), the images can be converted using any standard image editor after download.',
+    ],
+    faqs: [
+        { question: 'What quality are the output JPG images?', answer: 'SababPDF renders each PDF page at high resolution, producing clear and sharp JPG images. Text, graphics, and photos in the PDF are all accurately reproduced. The output quality is suitable for both screen viewing and printing.' },
+        { question: 'Can I convert specific pages instead of the entire PDF?', answer: 'Currently, this tool converts all pages in the PDF. If you need only certain pages, use our Split PDF tool first to extract the pages you want, then convert the resulting smaller PDF to JPG.' },
+        { question: 'How are multi-page PDFs handled?', answer: 'For single-page PDFs, you download one JPG image directly. For PDFs with two or more pages, all page images are automatically packaged into a ZIP file for convenient download.' },
+        { question: 'Is the conversion lossless?', answer: 'JPG is a lossy image format, so there is a very slight quality reduction compared to the original PDF vector graphics. However, the difference is imperceptible for normal use. If you need pixel-perfect output, consider using PNG format instead.' },
+        { question: 'Are my files safe during conversion?', answer: 'Yes. All conversion processing happens entirely in your browser using JavaScript. Your PDF file and the resulting JPG images never leave your device. No data is sent to any external server.' },
+    ],
+    relatedTools: [
+        { name: 'JPG to PDF', href: '/jpg-to-pdf', icon: '🖼️' },
+        { name: 'PDF to Word', href: '/pdf-to-word', icon: '📝' },
+        { name: 'Split PDF', href: '/split-pdf', icon: '✂️' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Crop PDF', href: '/crop-pdf', icon: '✂️' },
+        { name: 'PDF to Excel', href: '/pdf-to-excel', icon: '📊' },
+        { name: 'Rotate PDF', href: '/rotate-pdf', icon: '🔄' },
+        { name: 'PDF to PowerPoint', href: '/pdf-to-powerpoint', icon: '📊' },
+    ],
+};
 
 const PdfToJpg = () => {
     const [file, setFile] = useState(null);
@@ -132,6 +171,15 @@ const PdfToJpg = () => {
                     )}
                 </div>
             </div>
+
+            <ToolPageContent
+                title="Convert PDF to JPG"
+                howToUse={pdfToJpgContent.howToUse}
+                whyUseThis={pdfToJpgContent.whyUseThis}
+                tips={pdfToJpgContent.tips}
+                faqs={pdfToJpgContent.faqs}
+                relatedTools={pdfToJpgContent.relatedTools}
+            />
         </div>
     );
 };

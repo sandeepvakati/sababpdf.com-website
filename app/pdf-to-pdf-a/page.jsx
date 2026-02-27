@@ -1,7 +1,46 @@
 'use client';
 import React, { useState } from 'react';
 import { FileBadge, ArrowRight, Download, Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
+import ToolPageContent from '@/components/ToolPageContent';
 import { convertToPdfA } from '@/utils/conversionUtils';
+
+const pdfToPdfAContent = {
+    howToUse: [
+        { title: 'Upload Your PDF', description: 'Click the file input and select the PDF document you want to convert to PDF/A format. The tool accepts any standard PDF file.' },
+        { title: 'Start Conversion', description: 'Click "Convert to PDF/A" and SababPDF will process your document. The tool flattens interactive forms, sets PDF/A metadata fields, and establishes proper creation and modification dates for archival compliance.' },
+        { title: 'Download Your PDF/A File', description: 'Once conversion is complete, download your PDF/A document. The file is now optimized for long-term digital preservation and archival storage according to PDF/A standards.' },
+    ],
+    whyUseThis: [
+        { title: 'Long-Term Document Preservation', description: 'PDF/A is the international standard (ISO 19005) for digital document archiving. Converting to PDF/A ensures your documents can be accurately reproduced and viewed for decades to come, regardless of future software changes.' },
+        { title: 'Regulatory Compliance', description: 'Many industries and government agencies require documents in PDF/A format for legal records, medical files, financial reports, and official submissions. This tool helps you meet those requirements easily.' },
+        { title: 'Self-Contained Documents', description: 'PDF/A files embed all necessary resources (fonts, color profiles) within the document itself. This eliminates dependency on external resources and ensures the document looks the same on any system.' },
+        { title: 'Browser-Based Processing', description: 'Convert your documents to PDF/A directly in your browser without installing specialized archival software. No need for expensive enterprise solutions — SababPDF handles it for free.' },
+    ],
+    tips: [
+        'PDF/A conversion works best with text-based PDFs that use standard fonts. Documents with custom or proprietary fonts may have limited compliance.',
+        'For the most reliable archival results, start with a clean, well-formatted source document before converting to PDF.',
+        'After conversion, use a PDF/A validator tool to verify compliance if strict Level A compliance is required for your use case.',
+        'PDF/A files may be slightly larger than regular PDFs because they embed all fonts and resources. Use our Compress PDF tool afterward if file size is a concern.',
+        'Interactive features like form fields, JavaScript, and external links are removed during PDF/A conversion. Save your original PDF if you need these features.',
+    ],
+    faqs: [
+        { question: 'What is PDF/A?', answer: 'PDF/A is a specialized version of the PDF format designed for long-term archiving of digital documents. It is defined by international standard ISO 19005. PDF/A files are self-contained, meaning they embed all fonts, color profiles, and metadata needed to reproduce the document accurately in the future.' },
+        { question: 'What is the difference between PDF and PDF/A?', answer: 'Regular PDFs can contain external references, JavaScript, encryption, and interactive features. PDF/A removes all of these to create a self-contained, static document that will look the same regardless of the software or hardware used to view it, even decades from now.' },
+        { question: 'Does this tool provide full PDF/A Level A compliance?', answer: 'This tool provides best-effort PDF/A compliance by flattening forms, setting A-standard metadata, and establishing proper dates. Full Level A compliance requires rigorous validation of fonts and color profiles, which depends heavily on the source document quality.' },
+        { question: 'Will my interactive form fields still work?', answer: 'No. PDF/A requires that all forms be flattened (converted to static content). This is intentional — archival documents should not change after being archived. Fill in all forms before converting to PDF/A if you need the data preserved.' },
+        { question: 'Who needs PDF/A documents?', answer: 'PDF/A is commonly required by government agencies, legal firms, healthcare organizations, financial institutions, and any organization that needs to preserve documents for regulatory compliance or historical records. It is also recommended for personal archiving of important documents.' },
+    ],
+    relatedTools: [
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'Protect PDF', href: '/protect-pdf', icon: '🔒' },
+        { name: 'PDF to Word', href: '/pdf-to-word', icon: '📝' },
+        { name: 'Repair PDF', href: '/repair-pdf', icon: '🛠️' },
+        { name: 'Add Watermark', href: '/add-watermark', icon: '🎨' },
+        { name: 'Add Page Numbers', href: '/add-page-numbers', icon: '🔢' },
+        { name: 'Rotate PDF', href: '/rotate-pdf', icon: '🔄' },
+    ],
+};
 
 const PdfToPdfA = () => {
     const [file, setFile] = useState(null);
@@ -145,6 +184,15 @@ const PdfToPdfA = () => {
                     </div>
                 </div>
             </div>
+
+            <ToolPageContent
+                title="Convert PDF to PDF/A for Archiving"
+                howToUse={pdfToPdfAContent.howToUse}
+                whyUseThis={pdfToPdfAContent.whyUseThis}
+                tips={pdfToPdfAContent.tips}
+                faqs={pdfToPdfAContent.faqs}
+                relatedTools={pdfToPdfAContent.relatedTools}
+            />
         </div>
     );
 };

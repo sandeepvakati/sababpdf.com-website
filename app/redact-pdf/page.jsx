@@ -1,8 +1,47 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { FileBadge, ArrowRight, Download, Loader2, Trash2, Undo, MousePointer } from 'lucide-react';
+import ToolPageContent from '@/components/ToolPageContent';
 import { applyRedactions } from '@/utils/conversionUtils';
 import * as pdfjsLib from 'pdfjs-dist';
+
+const redactPdfContent = {
+    howToUse: [
+        { title: 'Upload Your PDF', description: 'Select the PDF file containing sensitive information you need to redact. SababPDF will render the document and display an interactive page preview.' },
+        { title: 'Draw Redaction Boxes', description: 'Click and drag on the page to draw black boxes over the text, images, or areas you want to permanently redact. Each redaction appears as a black rectangle. Use the page navigation sidebar to switch between pages and add redactions to any page.' },
+        { title: 'Apply and Download', description: 'Click "Apply Redactions" to permanently blackout all marked areas. The redacted content is irreversibly removed from the PDF. Download the redacted document — the blacked-out information cannot be recovered or copied.' },
+    ],
+    whyUseThis: [
+        { title: 'Permanent Redaction', description: 'Unlike simply placing a black shape over text, SababPDF permanently removes the underlying content. The redacted information cannot be selected, copied, searched, or extracted from the resulting PDF.' },
+        { title: 'Visual Redaction Interface', description: 'Draw redaction boxes directly on a rendered preview of each page. See exactly what will be hidden before applying the redactions. The interactive interface makes it easy to precisely target sensitive information.' },
+        { title: 'Multi-Page Support', description: 'Navigate through all pages and add redections to any page in the document. The sidebar shows how many redactions you have created and which pages they are on.' },
+        { title: 'Private & Secure', description: 'All redaction processing happens in your browser. Your sensitive documents are never uploaded to any server, which is critical when handling confidential legal, medical, or financial documents.' },
+    ],
+    tips: [
+        'Draw your redaction box slightly larger than the text you want to hide to ensure complete coverage.',
+        'Use the "Clear All" button to remove all redactions and start over if needed.',
+        'Individual redactions can be removed by clicking the trash icon next to them in the sidebar.',
+        'Always verify the redacted PDF by opening it and trying to select text in the redacted areas to confirm the content is truly removed.',
+        'Keep a copy of the original, unredacted PDF in a secure location before applying redactions, as the process is irreversible.',
+    ],
+    faqs: [
+        { question: 'Is the redaction permanent?', answer: 'Yes. When you apply redactions, the underlying content (text, images, data) beneath each black box is permanently removed from the PDF file. It cannot be undone, recovered, or extracted by any means. This is true, secure redaction — not just a visual overlay.' },
+        { question: 'Can someone copy or search redacted text?', answer: 'No. The text and data beneath each redaction box is completely removed from the document. Anyone who receives the redacted PDF will not be able to select, copy, search, or extract the hidden content in any way.' },
+        { question: 'Can I redact specific text automatically?', answer: 'Currently, redaction is done by manually drawing boxes over the areas you want to hide. You visually identify the sensitive content and draw a box over it. Automatic text-search-based redaction is a feature we may add in the future.' },
+        { question: 'Can I undo redactions after downloading?', answer: 'No. Once redactions are applied and the file is downloaded, the process is irreversible. The original content is permanently removed. Always keep a backup copy of the original, unredacted document before applying redactions.' },
+        { question: 'What types of content can I redact?', answer: 'You can redact any visual content in the PDF: text, images, signatures, tables, charts, headers, footers, page numbers, or any other element. Simply draw a box over the area and it will be permanently blacked out.' },
+    ],
+    relatedTools: [
+        { name: 'Protect PDF', href: '/protect-pdf', icon: '🔒' },
+        { name: 'Add Watermark', href: '/add-watermark', icon: '🎨' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Crop PDF', href: '/crop-pdf', icon: '✂️' },
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'PDF to Word', href: '/pdf-to-word', icon: '📝' },
+        { name: 'Split PDF', href: '/split-pdf', icon: '✂️' },
+        { name: 'Compare PDF', href: '/compare-pdf', icon: '🔍' },
+    ],
+};
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined' && 'Worker' in window) {
@@ -267,6 +306,15 @@ const RedactPdf = () => {
                     </div>
                 )}
             </div>
+
+            <ToolPageContent
+                title="Redact PDF Documents"
+                howToUse={redactPdfContent.howToUse}
+                whyUseThis={redactPdfContent.whyUseThis}
+                tips={redactPdfContent.tips}
+                faqs={redactPdfContent.faqs}
+                relatedTools={redactPdfContent.relatedTools}
+            />
         </div>
     );
 };

@@ -1,8 +1,47 @@
 'use client';
 import { useState } from 'react';
 import FileUploader from '@/components/FileUploader';
+import ToolPageContent from '@/components/ToolPageContent';
 import { convertPdfToPpt } from '@/utils/conversionUtils';
 import { Presentation, Download, File, Trash2 } from 'lucide-react';
+
+const pdfToPowerPointContent = {
+    howToUse: [
+        { title: 'Upload Your PDF', description: 'Click the upload area or drag and drop your PDF file. SababPDF accepts any standard PDF document for conversion to PowerPoint format.' },
+        { title: 'Convert to PowerPoint', description: 'Click "Convert to PowerPoint" and SababPDF will process each page of your PDF, converting it into individual PowerPoint slides. The conversion preserves the visual layout of each page.' },
+        { title: 'Download PPTX File', description: 'Once conversion is complete, download your PowerPoint file (.pptx). Open it in Microsoft PowerPoint, Google Slides, or any compatible presentation software and start editing.' },
+    ],
+    whyUseThis: [
+        { title: 'Repurpose PDF Content', description: 'Transform static PDF documents into editable PowerPoint presentations. Perfect for converting reports, proposals, and handouts into presentation-ready slideshows.' },
+        { title: 'Preserve Visual Layout', description: 'Each PDF page is converted into a PowerPoint slide, maintaining the original visual layout. This ensures your content looks the same in the presentation as it did in the PDF.' },
+        { title: 'Universal Compatibility', description: 'The output .pptx file works in Microsoft PowerPoint, Google Slides, LibreOffice Impress, Keynote, and all other major presentation tools.' },
+        { title: 'Free & Private', description: 'Convert as many PDFs as you need without any cost or registration. All processing happens in your browser — your files are never uploaded to any server.' },
+    ],
+    tips: [
+        'For best results, use PDFs that have a landscape orientation, as this matches the typical PowerPoint slide layout.',
+        'After conversion, you can edit the slides in PowerPoint to add animations, transitions, and speaker notes.',
+        'If your PDF has many pages, the conversion may take a few moments. Be patient while the tool processes each page.',
+        'The converted slides preserve the visual layout but may not retain editable text. Consider using our PDF to Word tool if you primarily need to extract and edit text.',
+        'For multi-page reports, consider splitting the PDF first to convert only the pages you need for your presentation.',
+    ],
+    faqs: [
+        { question: 'Will the text be editable in PowerPoint?', answer: 'The conversion preserves the visual layout of each PDF page as a slide. Depending on the PDF structure, some text may be editable while other content may be rendered as images. For fully editable text, consider our PDF to Word conversion tool instead.' },
+        { question: 'What happens to images and charts in the PDF?', answer: 'Images, charts, and visual elements from the PDF are preserved in the PowerPoint slides. They maintain their original appearance and positioning within each slide.' },
+        { question: 'Is there a page limit for conversion?', answer: 'There is no strict page limit. However, since processing happens in your browser, very large PDFs (hundreds of pages) may take longer to convert. For very long documents, consider splitting the PDF first.' },
+        { question: 'Can I edit the slides after conversion?', answer: 'Yes! The output is a standard .pptx file that you can open and edit in any presentation software. You can modify text, add new slides, apply themes, add animations, and make any changes you need.' },
+        { question: 'Does this work with scanned PDFs?', answer: 'Yes. Scanned PDF pages will be converted to slides as images. While the visual content is preserved, scanned text will not be editable — it will appear as an image within the slide.' },
+    ],
+    relatedTools: [
+        { name: 'PDF to Word', href: '/pdf-to-word', icon: '📝' },
+        { name: 'PDF to JPG', href: '/pdf-to-jpg', icon: '🖼️' },
+        { name: 'PDF to Excel', href: '/pdf-to-excel', icon: '📊' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Split PDF', href: '/split-pdf', icon: '✂️' },
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'Rotate PDF', href: '/rotate-pdf', icon: '🔄' },
+        { name: 'Add Watermark', href: '/add-watermark', icon: '🎨' },
+    ],
+};
 
 const PdfToPowerPoint = () => {
     const [file, setFile] = useState(null);
@@ -100,6 +139,15 @@ const PdfToPowerPoint = () => {
                     )}
                 </div>
             </div>
+
+            <ToolPageContent
+                title="Convert PDF to PowerPoint"
+                howToUse={pdfToPowerPointContent.howToUse}
+                whyUseThis={pdfToPowerPointContent.whyUseThis}
+                tips={pdfToPowerPointContent.tips}
+                faqs={pdfToPowerPointContent.faqs}
+                relatedTools={pdfToPowerPointContent.relatedTools}
+            />
         </div>
     );
 };

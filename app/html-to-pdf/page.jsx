@@ -1,7 +1,46 @@
 'use client';
 import { useState } from 'react';
 import { convertUrlToPdf } from '@/utils/conversionUtils';
+import ToolPageContent from '@/components/ToolPageContent';
 import { Globe, Download, AlertTriangle, ArrowRight, Link as LinkIcon } from 'lucide-react';
+
+const htmlToPdfContent = {
+    howToUse: [
+        { title: 'Enter the Webpage URL', description: 'Type or paste the full URL of the webpage you want to convert (e.g., https://www.example.com). The URL must start with http:// or https:// to be valid.' },
+        { title: 'Configure Settings', description: 'Adjust the page size (A4, Letter, Legal, or A3), orientation (Portrait or Landscape), and margin (in millimeters) to control how the webpage content is formatted in the PDF.' },
+        { title: 'Convert and Download', description: 'Click "Convert to PDF" and SababPDF will fetch the webpage content and render it into a PDF document. Download the result — great for saving articles, receipts, documentation, and web content for offline reading.' },
+    ],
+    whyUseThis: [
+        { title: 'Save Any Webpage', description: 'Convert blog posts, news articles, documentation pages, online receipts, and any public webpage into a permanent PDF document. Perfect for creating offline archives of important online content.' },
+        { title: 'Customizable Output', description: 'Choose your preferred page size, orientation, and margins. Whether you need compact A4 documents or wide landscape layouts for data-heavy pages, SababPDF adapts to your needs.' },
+        { title: 'No Browser Extensions Needed', description: 'Unlike browser-based "Print to PDF" which requires configuring print settings, SababPDF provides a clean, dedicated interface with advanced options for consistent, high-quality results.' },
+        { title: 'Fast & Simple', description: 'Just paste a URL and click convert. No file uploads, no complex settings — the simplest way to turn web content into downloadable PDF documents.' },
+    ],
+    tips: [
+        'Use the full URL including https:// for best results. Most modern websites require HTTPS.',
+        'For long articles or documentation pages, Portrait orientation with A4 size typically produces the most readable results.',
+        'Increase the margin (15-20mm) if you plan to print the PDF, as printers typically need some margin space.',
+        'Content behind login pages or paywalls cannot be accessed by this tool. Only publicly available webpage content can be converted.',
+        'If a webpage does not convert well, try using your browser\'s built-in "Print > Save as PDF" feature as an alternative.',
+    ],
+    faqs: [
+        { question: 'Can I convert any website to PDF?', answer: 'This tool works best with public, static HTML content. Websites that rely heavily on JavaScript rendering, require login credentials, or block automated access may not convert properly. Simple content pages, blog posts, and documentation pages work best.' },
+        { question: 'Will the PDF look exactly like the website?', answer: 'The PDF captures the HTML content of the webpage but may not perfectly replicate complex CSS animations, JavaScript-generated content, or dynamic elements. The result is a clean, readable PDF representation of the page\'s static content.' },
+        { question: 'Can I convert multiple pages at once?', answer: 'Currently, this tool converts one URL at a time. If you need to convert multiple pages, process them individually and then use our Merge PDF tool to combine them into a single document.' },
+        { question: 'What page size options are available?', answer: 'You can choose from A4 (standard international), Letter (US standard), Legal (US legal documents), and A3 (larger format). A4 is the most commonly used option worldwide.' },
+        { question: 'Is the webpage content cached or stored?', answer: 'No. The webpage content is fetched in real time during conversion and is not stored anywhere after the PDF is generated. Your browsing activity and the converted content remain private.' },
+    ],
+    relatedTools: [
+        { name: 'Word to PDF', href: '/word-to-pdf', icon: '📝' },
+        { name: 'JPG to PDF', href: '/jpg-to-pdf', icon: '🖼️' },
+        { name: 'Excel to PDF', href: '/excel-to-pdf', icon: '📊' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'Add Watermark', href: '/add-watermark', icon: '🎨' },
+        { name: 'Protect PDF', href: '/protect-pdf', icon: '🔒' },
+        { name: 'PDF to Word', href: '/pdf-to-word', icon: '📄' },
+    ],
+};
 
 const HtmlToPdf = () => {
     const [url, setUrl] = useState('');
@@ -172,6 +211,15 @@ const HtmlToPdf = () => {
                     </div>
                 </div>
             </div>
+
+            <ToolPageContent
+                title="Convert HTML Webpage to PDF"
+                howToUse={htmlToPdfContent.howToUse}
+                whyUseThis={htmlToPdfContent.whyUseThis}
+                tips={htmlToPdfContent.tips}
+                faqs={htmlToPdfContent.faqs}
+                relatedTools={htmlToPdfContent.relatedTools}
+            />
         </div>
     );
 };

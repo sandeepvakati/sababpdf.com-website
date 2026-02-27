@@ -1,8 +1,47 @@
 'use client';
 import { useState } from 'react';
 import FileUploader from '@/components/FileUploader';
+import ToolPageContent from '@/components/ToolPageContent';
 import { convertWordToPdf } from '@/utils/conversionUtils';
 import { FileText, Download, FileJson, Trash2 } from 'lucide-react';
+
+const wordToPdfContent = {
+    howToUse: [
+        { title: 'Upload Your Word File', description: 'Click the upload area or drag and drop a .docx file. SababPDF currently supports the modern .docx format (Word 2007 and later). If you have an older .doc file, save it as .docx first in your word processor.' },
+        { title: 'Convert to PDF', description: 'Click the "Convert to PDF" button. SababPDF will process your Word document and generate a high-quality PDF version that preserves your text, headings, and paragraph structure.' },
+        { title: 'Download Your PDF', description: 'Once conversion is complete, click "Download PDF" to save the file to your device. The PDF is ready to share, print, or upload to any platform.' },
+    ],
+    whyUseThis: [
+        { title: 'Instant Conversion', description: 'Convert your Word documents to PDF in seconds. No waiting for email delivery or server processing queues — the result is available immediately in your browser.' },
+        { title: 'Universal Compatibility', description: 'PDFs look identical on every device and operating system. Converting to PDF ensures your document formatting stays consistent whether viewed on Windows, Mac, phone, or tablet.' },
+        { title: 'No Microsoft Word Needed', description: 'You do not need Microsoft Word installed to convert .docx files to PDF. SababPDF handles the conversion entirely through your web browser, making it accessible from any device.' },
+        { title: 'Secure & Private', description: 'Your Word file is processed locally in your browser and is never uploaded to any external server. This makes it safe to convert confidential business documents, legal contracts, and personal files.' },
+    ],
+    tips: [
+        'For the best results, make sure your Word document uses standard formatting. Complex layouts with text boxes, embedded objects, or advanced Word features may not convert perfectly.',
+        'If your Word file has many images, the resulting PDF may be larger. Consider using our Compress PDF tool afterward to reduce the file size.',
+        'Always review the PDF after conversion to ensure all content, especially tables and images, appears correctly before sharing.',
+        'If you need to convert the PDF back to Word later, use our PDF to Word tool.',
+        'For older .doc files, open them in Google Docs or LibreOffice, save as .docx, then upload to SababPDF for conversion.',
+    ],
+    faqs: [
+        { question: 'Does the conversion preserve formatting?', answer: 'SababPDF preserves text content, headings, paragraph styles, and basic formatting. Simple documents convert very well. Complex layouts with advanced Word features like SmartArt, track changes, or macros may not be fully preserved.' },
+        { question: 'Can I convert .doc files (older Word format)?', answer: 'Currently, SababPDF supports .docx files (the modern Word format used since Word 2007). If you have an older .doc file, you can easily convert it to .docx by opening it in Microsoft Word, Google Docs, or LibreOffice and saving it in the newer format.' },
+        { question: 'Is there a file size limit?', answer: 'There is no strict file size limit. However, since the conversion happens in your browser, very large documents (over 50 MB) may be slower. For optimal performance, keep your Word files under 20 MB.' },
+        { question: 'Will my document look the same as in Word?', answer: 'The PDF output preserves text, headings, and paragraph structure accurately. However, exact font rendering may vary if your document uses custom or proprietary fonts that are not available in the browser environment.' },
+        { question: 'Can I convert multiple Word files at once?', answer: 'Currently, this tool converts one file at a time. To create a single PDF from multiple Word documents, convert each one separately and then use our Merge PDF tool to combine them.' },
+    ],
+    relatedTools: [
+        { name: 'PDF to Word', href: '/pdf-to-word', icon: '📄' },
+        { name: 'Excel to PDF', href: '/excel-to-pdf', icon: '📊' },
+        { name: 'HTML to PDF', href: '/html-to-pdf', icon: '🌐' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'Protect PDF', href: '/protect-pdf', icon: '🔒' },
+        { name: 'Add Watermark', href: '/add-watermark', icon: '🎨' },
+        { name: 'Add Page Numbers', href: '/add-page-numbers', icon: '🔢' },
+    ],
+};
 
 const WordToPdf = () => {
     const [file, setFile] = useState(null);
@@ -108,6 +147,15 @@ const WordToPdf = () => {
                     )}
                 </div>
             </div>
+
+            <ToolPageContent
+                title="Convert Word to PDF"
+                howToUse={wordToPdfContent.howToUse}
+                whyUseThis={wordToPdfContent.whyUseThis}
+                tips={wordToPdfContent.tips}
+                faqs={wordToPdfContent.faqs}
+                relatedTools={wordToPdfContent.relatedTools}
+            />
         </div>
     );
 };

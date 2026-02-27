@@ -1,8 +1,47 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { FileBadge, ArrowRight, Download, Loader2, Crop, Check, X } from 'lucide-react';
+import ToolPageContent from '@/components/ToolPageContent';
 import { cropPdf } from '@/utils/conversionUtils';
 import * as pdfjsLib from 'pdfjs-dist';
+
+const cropPdfContent = {
+    howToUse: [
+        { title: 'Upload Your PDF', description: 'Click "Select PDF file to Crop" and choose your PDF file. SababPDF will render all pages as interactive thumbnails in the sidebar and display the active page in the main workspace.' },
+        { title: 'Select the Crop Area', description: 'Click and drag on the page preview to draw a rectangle around the area you want to keep. The blue overlay shows the selected region with its pixel dimensions. You can optionally check "Apply to All Pages" to crop every page identically.' },
+        { title: 'Crop and Download', description: 'Click "Crop PDF" to process the document. SababPDF will trim all selected pages to the area you defined. Download the cropped PDF — perfect for removing margins, headers, or unwanted areas from scanned documents.' },
+    ],
+    whyUseThis: [
+        { title: 'Visual Selection', description: 'Draw your crop area directly on a rendered preview of the PDF page. See exactly what will be included in the final output — no guessing with manual coordinate entry.' },
+        { title: 'Per-Page or All-Pages Cropping', description: 'Crop a single page or apply the same crop area to all pages in the document. The "Apply to All Pages" option is perfect for uniformly trimming margins from multi-page documents.' },
+        { title: 'Page Navigation', description: 'Browse through all pages using the sidebar thumbnails. Click any thumbnail to switch to that page and define a unique crop area for it.' },
+        { title: 'Browser-Based Privacy', description: 'The entire cropping process — rendering, selection, and export — happens in your browser. Your PDF is never sent to any external server.' },
+    ],
+    tips: [
+        'Draw your crop rectangle carefully. The more precise your selection, the better the final result will look.',
+        'For scanned documents with large margins, cropping can significantly reduce file size by removing empty whitespace.',
+        'Use "Apply to All Pages" when your document has consistent margins or borders that need to be removed from every page.',
+        'If you make a mistake with the crop selection, simply click and drag again to create a new selection rectangle.',
+        'After cropping, you can use our Compress PDF tool to further reduce the file size of the cropped document.',
+    ],
+    faqs: [
+        { question: 'Does cropping reduce the PDF quality?', answer: 'Cropping is a lossless operation on the content within the crop area. The text, images, and formatting inside your selected area remain at their original quality. Only the content outside the crop area is removed.' },
+        { question: 'Can I crop different areas on different pages?', answer: 'Currently, you can draw one crop selection. If "Apply to All Pages" is checked, the same crop area applies to all pages. If unchecked, only the currently active page is cropped. For different crops on different pages, process one page at a time.' },
+        { question: 'What is the minimum crop size?', answer: 'The minimum crop selection is 10x10 pixels. Smaller selections will trigger a warning asking you to select a larger area. This prevents accidentally creating tiny, unusable cropped documents.' },
+        { question: 'Can I undo a crop after downloading?', answer: 'Once cropped, the removed content is permanently gone from the new PDF. Always keep your original, uncropped file if you might need the full document later.' },
+        { question: 'Does cropping work with scanned documents?', answer: 'Yes! Cropping works equally well with scanned documents, text-based PDFs, and mixed-content files. For scanned documents, cropping is especially useful for removing scanner borders, shadows, or finger marks at the edges.' },
+    ],
+    relatedTools: [
+        { name: 'Rotate PDF', href: '/rotate-pdf', icon: '🔄' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Split PDF', href: '/split-pdf', icon: '✂️' },
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'PDF to JPG', href: '/pdf-to-jpg', icon: '🖼️' },
+        { name: 'Add Watermark', href: '/add-watermark', icon: '🎨' },
+        { name: 'Add Page Numbers', href: '/add-page-numbers', icon: '🔢' },
+        { name: 'Repair PDF', href: '/repair-pdf', icon: '🛠️' },
+    ],
+};
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined' && 'Worker' in window) {
@@ -290,6 +329,15 @@ const CropPdf = () => {
                     </div>
                 )}
             </div>
+
+            <ToolPageContent
+                title="Crop PDF Pages"
+                howToUse={cropPdfContent.howToUse}
+                whyUseThis={cropPdfContent.whyUseThis}
+                tips={cropPdfContent.tips}
+                faqs={cropPdfContent.faqs}
+                relatedTools={cropPdfContent.relatedTools}
+            />
         </div>
     );
 };

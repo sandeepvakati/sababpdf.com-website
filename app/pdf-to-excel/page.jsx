@@ -1,8 +1,47 @@
 'use client';
 import { useState } from 'react';
 import FileUploader from '@/components/FileUploader';
+import ToolPageContent from '@/components/ToolPageContent';
 import { convertPdfToExcel } from '@/utils/conversionUtils';
 import { FileSpreadsheet, Download, FileJson, Trash2 } from 'lucide-react';
+
+const pdfToExcelContent = {
+    howToUse: [
+        { title: 'Upload Your PDF', description: 'Click the upload area or drag and drop a PDF file containing tabular data like invoices, financial reports, or data tables. SababPDF will read the document and prepare it for conversion.' },
+        { title: 'Enable OCR if Needed', description: 'If your PDF is a scanned document (an image of a printed page), check the "Use OCR" option. OCR (Optical Character Recognition) extracts text from scanned images, enabling conversion even when the PDF does not contain selectable text.' },
+        { title: 'Convert and Download', description: 'Click "Convert to Excel" and SababPDF will extract tabular data from your PDF and structure it into an editable Excel spreadsheet (.xlsx). Download the result and open it in Excel, Google Sheets, or any spreadsheet application.' },
+    ],
+    whyUseThis: [
+        { title: 'OCR Support for Scanned PDFs', description: 'Unlike basic converters, SababPDF includes OCR technology that can extract text from scanned documents and images. This means even photos of receipts, printed invoices, or scanned reports can be converted to editable spreadsheets.' },
+        { title: 'Editable Spreadsheet Output', description: 'The output .xlsx file contains properly structured data that you can filter, sort, calculate with formulas, and manipulate just like any other Excel spreadsheet. Save hours of manual data entry.' },
+        { title: 'No Software Installation', description: 'Convert PDFs to Excel directly in your browser without installing Microsoft Excel, Adobe Acrobat, or any other software. Works on Windows, Mac, Linux, and mobile devices.' },
+        { title: 'Secure & Private', description: 'All processing happens locally in your browser. Sensitive financial data, business reports, and personal information are never uploaded to external servers.' },
+    ],
+    tips: [
+        'For best results, use PDFs that contain clearly structured tables with consistent formatting, borders, and column headers.',
+        'Enable OCR only for scanned documents. For text-based PDFs, leaving OCR off produces faster and more accurate results.',
+        'After conversion, review the Excel file to check that column alignment is correct. Complex multi-column layouts may need minor adjustments.',
+        'If your PDF has multiple tables on different pages, each table may appear on a separate row group in the Excel output.',
+        'For very large PDFs, OCR processing may take several minutes. Be patient while the tool processes each page.',
+    ],
+    faqs: [
+        { question: 'When should I enable the OCR option?', answer: 'Enable OCR when your PDF was created by scanning a printed document. Scanned PDFs are essentially images and do not contain selectable text. OCR reads the text from these images so it can be converted to editable spreadsheet data. For digital PDFs where you can select and copy text, leave OCR off for faster processing.' },
+        { question: 'How accurate is the data extraction?', answer: 'Accuracy depends on the quality and structure of the source PDF. Well-formatted tables with clear borders and consistent formatting produce excellent results. Complex layouts with merged cells, nested tables, or unusual formatting may require some manual cleanup.' },
+        { question: 'What Excel format is the output?', answer: 'The output is a .xlsx file (the modern Excel format). It can be opened in Microsoft Excel 2007 and later, Google Sheets, LibreOffice Calc, Apple Numbers, and most other spreadsheet applications.' },
+        { question: 'Can I convert a PDF with multiple pages?', answer: 'Yes, all pages in the PDF are processed. Tabular data from each page is extracted and included in the Excel output. Data from different pages may appear in sequence within the spreadsheet.' },
+        { question: 'Is there a limit on PDF file size?', answer: 'There is no strict size limit. However, since processing occurs in your browser, very large PDFs (especially with OCR enabled) may take longer. For optimal performance, keep files under 20 MB.' },
+    ],
+    relatedTools: [
+        { name: 'Excel to PDF', href: '/excel-to-pdf', icon: '📊' },
+        { name: 'PDF to Word', href: '/pdf-to-word', icon: '📝' },
+        { name: 'PDF to JPG', href: '/pdf-to-jpg', icon: '🖼️' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'Split PDF', href: '/split-pdf', icon: '✂️' },
+        { name: 'Unlock PDF', href: '/unlock-pdf', icon: '🔓' },
+        { name: 'Scan to PDF', href: '/scan-to-pdf', icon: '📱' },
+    ],
+};
 
 const PdfToExcel = () => {
     const [file, setFile] = useState(null);
@@ -118,6 +157,15 @@ const PdfToExcel = () => {
                     )}
                 </div>
             </div>
+
+            <ToolPageContent
+                title="Convert PDF to Excel"
+                howToUse={pdfToExcelContent.howToUse}
+                whyUseThis={pdfToExcelContent.whyUseThis}
+                tips={pdfToExcelContent.tips}
+                faqs={pdfToExcelContent.faqs}
+                relatedTools={pdfToExcelContent.relatedTools}
+            />
         </div>
     );
 };

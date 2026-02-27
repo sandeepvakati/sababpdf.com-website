@@ -1,8 +1,47 @@
 'use client';
 import { useState } from 'react';
 import FileUploader from '@/components/FileUploader';
+import ToolPageContent from '@/components/ToolPageContent';
 import { protectPdf } from '@/utils/conversionUtils';
 import { Lock, Download, File, Trash2, ShieldCheck } from 'lucide-react';
+
+const protectPdfContent = {
+    howToUse: [
+        { title: 'Upload Your PDF', description: 'Click the upload area or drag and drop the PDF file you want to protect. SababPDF will load your document and prepare it for encryption.' },
+        { title: 'Set a Strong Password', description: 'Enter a password in the "Set Password" field and confirm it. Choose a strong password that combines letters, numbers, and symbols for maximum security. Anyone who wants to open the protected PDF will need this password.' },
+        { title: 'Protect and Download', description: 'Click "Protect PDF" and SababPDF will encrypt your document with the password. Download the protected file and share it securely, knowing that only people with the password can open it.' },
+    ],
+    whyUseThis: [
+        { title: 'Strong AES Encryption', description: 'SababPDF uses industry-standard AES encryption to protect your PDF. This is the same encryption standard used by governments and financial institutions worldwide to secure sensitive data.' },
+        { title: 'No Server Upload', description: 'The encryption process happens entirely in your browser. Your sensitive documents and passwords are never transmitted over the internet or stored on any server.' },
+        { title: 'Universal Protection', description: 'The protected PDF works in all standard PDF readers including Adobe Acrobat, Preview, Chrome, Firefox, and mobile PDF apps. Recipients simply enter the password to access the document.' },
+        { title: 'Free & Unlimited', description: 'Protect as many PDFs as you need without any cost, file size limits, or registration requirements. No watermarks are added to your protected documents.' },
+    ],
+    tips: [
+        'Use a strong password with at least 8 characters including uppercase, lowercase, numbers, and symbols for maximum security.',
+        'Keep your password in a safe place. If you forget the password, there is no way to recover access to a protected PDF.',
+        'Share the password through a separate channel from the PDF. For example, send the PDF via email and the password via text message.',
+        'For documents that need both password protection and visual branding, use our Add Watermark tool before protecting the PDF.',
+        'If you need to remove password protection later, use our Unlock PDF tool (you will need to know the current password).',
+    ],
+    faqs: [
+        { question: 'Can someone crack the password?', answer: 'The AES encryption used by SababPDF is extremely strong and is considered virtually unbreakable with a good password. However, weak passwords (like "123456") can be guessed. Always use a strong, unique password for important documents.' },
+        { question: 'Will the protected PDF work in all PDF readers?', answer: 'Yes. Password-protected PDFs are a standard PDF feature supported by Adobe Acrobat, Preview (Mac), Chrome, Firefox, Microsoft Edge, and virtually all mobile PDF apps. Recipients will be prompted to enter the password when opening the file.' },
+        { question: 'Can I protect a PDF that is already password-protected?', answer: 'You would need to unlock the existing PDF first using our Unlock PDF tool, then apply a new password. You cannot add a second layer of password protection on top of an existing one.' },
+        { question: 'Does password protection change the PDF content?', answer: 'No. The content, formatting, images, and all other elements of your PDF remain completely unchanged. Only a password requirement is added to control access.' },
+        { question: 'Is my password stored anywhere?', answer: 'No. The password is used only during the encryption process in your browser and is never stored, logged, or transmitted. Once the protected PDF is created, the password exists only in the encrypted file itself.' },
+    ],
+    relatedTools: [
+        { name: 'Unlock PDF', href: '/unlock-pdf', icon: '🔓' },
+        { name: 'Add Watermark', href: '/add-watermark', icon: '🎨' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'PDF to Word', href: '/pdf-to-word', icon: '📝' },
+        { name: 'Split PDF', href: '/split-pdf', icon: '✂️' },
+        { name: 'Rotate PDF', href: '/rotate-pdf', icon: '🔄' },
+        { name: 'Repair PDF', href: '/repair-pdf', icon: '🛠️' },
+    ],
+};
 
 const ProtectPdf = () => {
     const [file, setFile] = useState(null);
@@ -132,6 +171,15 @@ const ProtectPdf = () => {
                     )}
                 </div>
             </div>
+
+            <ToolPageContent
+                title="Protect PDF with Password"
+                howToUse={protectPdfContent.howToUse}
+                whyUseThis={protectPdfContent.whyUseThis}
+                tips={protectPdfContent.tips}
+                faqs={protectPdfContent.faqs}
+                relatedTools={protectPdfContent.relatedTools}
+            />
         </div>
     );
 };

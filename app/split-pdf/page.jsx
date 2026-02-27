@@ -1,11 +1,50 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import FileUploader from '@/components/FileUploader';
+import ToolPageContent from '@/components/ToolPageContent';
 import { splitPdf } from '@/utils/pdfUtils';
 import { Scissors, Download, X, FileText, ChevronLeft, ChevronRight, Eye, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+const splitPdfContent = {
+    howToUse: [
+        { title: 'Upload Your PDF', description: 'Click the upload area or drag and drop a single PDF file. SababPDF will instantly load all pages and display thumbnails so you can see every page in your document.' },
+        { title: 'Select Pages to Extract', description: 'You have two options: type a page range manually (e.g., "1-5, 8, 11-13") or click the "Pick Pages" button to visually select pages by clicking on their thumbnails. Click pages in the exact order you want them in the output file.' },
+        { title: 'Split and Download', description: 'Click the "Split PDF" button and your extracted pages will be compiled into a new, smaller PDF file. Download the result instantly — no waiting, no email required.' },
+    ],
+    whyUseThis: [
+        { title: 'Visual Page Selection', description: 'See every page as a thumbnail before splitting. Click pages in any order to build your custom extracted document — no guessing which page number contains what content.' },
+        { title: 'Flexible Range Input', description: 'Use our smart range input to quickly specify pages. Type "1-5" for the first five pages, "3,7,12" for specific pages, or mix both styles like "1-3, 7, 10-15" for maximum flexibility.' },
+        { title: 'Completely Private', description: 'Your PDF never leaves your browser. All splitting is done locally using client-side JavaScript, so confidential documents like contracts, medical records, or financial statements remain 100% private.' },
+        { title: 'No Quality Loss', description: 'SababPDF extracts pages from the original PDF data without re-encoding. Text stays sharp, images stay crisp, and all formatting is perfectly preserved in the output file.' },
+    ],
+    tips: [
+        'Use the "Pick Pages" mode when you need to extract pages in a non-sequential order or want to visually confirm each page before extraction.',
+        'For large documents, use the page range input (e.g., "1-10") for faster selection instead of clicking each page individually.',
+        'You can preview any page in full size by hovering over a thumbnail and clicking the eye icon — this helps you find the exact pages you need.',
+        'After splitting, you can merge the extracted pages with other PDFs using our Merge PDF tool to create custom compilations.',
+        'If you need to split a PDF into individual single-page files, extract one page at a time and download each separately.',
+    ],
+    faqs: [
+        { question: 'Can I extract non-consecutive pages from a PDF?', answer: 'Yes! You can extract any combination of pages. Use the range input (e.g., "1, 5, 8-12, 20") or click the "Pick Pages" button to visually select pages in any order. The extracted pages will appear in the order you specified.' },
+        { question: 'Is there a page limit for splitting PDFs?', answer: 'There is no hard limit. SababPDF can handle PDFs with hundreds of pages. However, very large files (500+ pages) may take a few extra seconds to load thumbnails depending on your device performance.' },
+        { question: 'Does splitting a PDF affect the original file?', answer: 'No, the original PDF file on your computer is never modified. SababPDF creates a brand new PDF containing only the pages you selected. Your source file remains completely untouched.' },
+        { question: 'Can I split a password-protected PDF?', answer: 'If the PDF has a password that restricts editing, you may need to unlock it first using our Unlock PDF tool. Once unlocked, you can split it normally. PDFs with only a viewing password will work directly.' },
+        { question: 'What happens to bookmarks and links when I split a PDF?', answer: 'When you extract pages, internal bookmarks and hyperlinks that reference pages outside the extracted range may no longer work. However, all content, formatting, and embedded media on the extracted pages will be perfectly preserved.' },
+    ],
+    relatedTools: [
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Rotate PDF', href: '/rotate-pdf', icon: '🔄' },
+        { name: 'Add Page Numbers', href: '/add-page-numbers', icon: '🔢' },
+        { name: 'Crop PDF', href: '/crop-pdf', icon: '✂️' },
+        { name: 'PDF to JPG', href: '/pdf-to-jpg', icon: '🖼️' },
+        { name: 'Protect PDF', href: '/protect-pdf', icon: '🔒' },
+        { name: 'Add Watermark', href: '/add-watermark', icon: '🎨' },
+    ],
+};
 
 const PageThumbnail = ({ pageData }) => {
     const canvasRef = useRef(null);
@@ -423,6 +462,15 @@ export default function SplitPdfPage() {
                     onNavigate={(p) => setPreviewPage(p)}
                 />
             )}
+
+            <ToolPageContent
+                title="Split PDF Files"
+                howToUse={splitPdfContent.howToUse}
+                whyUseThis={splitPdfContent.whyUseThis}
+                tips={splitPdfContent.tips}
+                faqs={splitPdfContent.faqs}
+                relatedTools={splitPdfContent.relatedTools}
+            />
         </div>
     );
 }

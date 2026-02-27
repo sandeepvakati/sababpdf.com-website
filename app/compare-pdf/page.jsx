@@ -1,7 +1,46 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, ArrowRightLeft, Layers, Eye, ZoomIn, ZoomOut } from 'lucide-react';
+import ToolPageContent from '@/components/ToolPageContent';
 import * as pdfjsLib from 'pdfjs-dist';
+
+const comparePdfContent = {
+    howToUse: [
+        { title: 'Upload Two PDF Files', description: 'Upload the "Original" PDF in the left upload box and the "Modified" PDF in the right upload box. Both files need to be selected before comparison begins.' },
+        { title: 'Choose a Comparison Mode', description: 'Use the toolbar to switch between "Side by Side" view (both PDFs displayed next to each other) or "Overlay" view (both PDFs layered on top of each other with adjustable opacity to spot differences).' },
+        { title: 'Navigate and Zoom', description: 'Use the page navigation buttons to move through each page. Zoom in and out to examine details. In overlay mode, adjust the opacity slider to blend between the two documents and spot visual differences.' },
+    ],
+    whyUseThis: [
+        { title: 'Visual Comparison', description: 'See exactly how two versions of a PDF differ by viewing them side by side or overlaid on top of each other. Much more effective than manually switching between files.' },
+        { title: 'Two Viewing Modes', description: 'Side-by-side mode shows both documents next to each other for easy scanning. Overlay mode stacks them with adjustable opacity to highlight even subtle differences in layout, text, or images.' },
+        { title: 'Page-by-Page Navigation', description: 'Navigate through every page of both documents simultaneously. The tool handles documents of different lengths, showing a blank canvas for pages that exist in one file but not the other.' },
+        { title: 'Browser-Based & Private', description: 'Both PDF files are processed entirely in your browser. Nothing is uploaded to any server, making it safe to compare confidential contracts, legal documents, and sensitive business files.' },
+    ],
+    tips: [
+        'Use Overlay mode with around 50% opacity to quickly spot differences between two versions of the same document.',
+        'Zoom in (up to 300%) to examine fine details like font changes, spacing adjustments, or subtle image modifications.',
+        'This tool works best for comparing two versions of the same document. Comparing completely different documents is possible but less useful.',
+        'If the documents have different page counts, the tool will show empty canvases for pages that do not exist in the shorter document.',
+        'Use this tool before finalizing contracts or reports to ensure all intended changes were made correctly.',
+    ],
+    faqs: [
+        { question: 'Does this tool highlight the differences?', answer: 'The current version provides visual comparison through side-by-side and overlay views. You can spot differences yourself by switching between views and adjusting opacity. Automated text-level difference highlighting is a feature we are working on for a future update.' },
+        { question: 'Can I compare more than two PDFs?', answer: 'Currently, the tool compares exactly two PDF files at a time. If you need to compare three or more versions, compare them in pairs — original vs version 1, then original vs version 2.' },
+        { question: 'What if the two PDFs have different page counts?', answer: 'The tool handles this gracefully. It uses the page count of the longer document and shows a blank canvas for pages that only exist in one of the two files.' },
+        { question: 'Are my documents uploaded to a server?', answer: 'No. Both PDF files are loaded and rendered entirely in your browser using JavaScript. Your documents never leave your device, making this tool safe for confidential materials.' },
+        { question: 'Can I compare scanned PDFs?', answer: 'Yes. The tool renders and displays the visual content of any PDF, including scanned documents. However, since comparison is visual rather than text-based, you will be comparing the visual appearance of each page.' },
+    ],
+    relatedTools: [
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'Split PDF', href: '/split-pdf', icon: '✂️' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'PDF to Word', href: '/pdf-to-word', icon: '📝' },
+        { name: 'Redact PDF', href: '/redact-pdf', icon: '⬛' },
+        { name: 'Add Watermark', href: '/add-watermark', icon: '🎨' },
+        { name: 'Protect PDF', href: '/protect-pdf', icon: '🔒' },
+        { name: 'Rotate PDF', href: '/rotate-pdf', icon: '🔄' },
+    ],
+};
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined' && 'Worker' in window) {
@@ -192,6 +231,15 @@ const ComparePdf = () => {
                     </div>
                 )}
             </div>
+
+            <ToolPageContent
+                title="Compare PDF Documents"
+                howToUse={comparePdfContent.howToUse}
+                whyUseThis={comparePdfContent.whyUseThis}
+                tips={comparePdfContent.tips}
+                faqs={comparePdfContent.faqs}
+                relatedTools={comparePdfContent.relatedTools}
+            />
         </div>
     );
 };

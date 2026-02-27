@@ -1,12 +1,51 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import FileUploader from '@/components/FileUploader';
+import ToolPageContent from '@/components/ToolPageContent';
 import { Minimize2, Download, FileText, Trash2, X, ChevronLeft, ChevronRight, Eye, Zap, Shield, Gauge, Pencil, RotateCcw } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 
 import { PDFDocument } from 'pdf-lib';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+const compressPdfContent = {
+    howToUse: [
+        { title: 'Upload Your PDF', description: 'Click the upload area or drag and drop a PDF file. SababPDF will instantly load it and display page thumbnails along with the current file size so you can see exactly what you are working with.' },
+        { title: 'Choose a Compression Level', description: 'Select from five compression modes: Extreme (for the smallest file), High, Recommended (best balance of size and quality), Low, or Minimal. Each option shows you an estimated output size and quality indicator so you can make an informed choice.' },
+        { title: 'Compress and Download', description: 'Click the "Compress PDF" button and wait a few moments while SababPDF optimizes your file. Once complete, you will see the exact size reduction achieved and can download your compressed PDF immediately.' },
+    ],
+    whyUseThis: [
+        { title: '5 Compression Levels', description: 'Unlike most tools that offer a single compression option, SababPDF gives you five levels ranging from extreme shrinkage to near-original quality. This means you always get exactly the right balance for your needs.' },
+        { title: 'Visual Size Comparison', description: 'See a real-time progress bar comparing original size to the estimated compressed size before you even click compress. After compression, see the exact bytes saved and percentage reduction.' },
+        { title: 'Page-Level Selection', description: 'Use the "Pick Pages" mode to compress only specific pages from your PDF. This is perfect when you have a mix of text and image-heavy pages and only need to shrink certain sections.' },
+        { title: 'Runs Entirely in Your Browser', description: 'All compression processing happens locally in your browser. Your sensitive documents are never uploaded to any external server, making this ideal for confidential files like financial statements, contracts, or medical records.' },
+    ],
+    tips: [
+        'For emailing PDFs, the "Recommended" level works best — it produces files under 1 MB while maintaining excellent readability for text and clear images.',
+        'If you need to upload a PDF to a government portal or form submission website with strict size limits, try the "Extreme" or "High" compression levels.',
+        'For PDFs that contain mostly text with few images, even the "Minimal" compression can significantly reduce file size by optimizing internal PDF structures.',
+        'Always preview the compressed result before sharing. If quality is too low, try compressing again with a lighter compression level.',
+        'If your PDF is already small (under 500 KB), compression may not significantly reduce the size further. The tool works best on image-heavy or large documents.',
+    ],
+    faqs: [
+        { question: 'Does compressing a PDF reduce the quality of text?', answer: 'Text in PDFs is stored as vector data and is not affected by our compression. The compression primarily targets embedded images and internal PDF structures. At the "Recommended" or lighter levels, document quality remains excellent for both viewing and printing.' },
+        { question: 'How much can I reduce my PDF file size?', answer: 'The reduction depends on the content of your PDF. Image-heavy PDFs (scanned documents, photo albums) can often be reduced by 60–90%. Text-heavy PDFs with few images may see a 10–30% reduction. The estimated size shown before compression gives you a good indication.' },
+        { question: 'Is there a file size limit for compression?', answer: 'There is no strict file size limit. However, since all processing happens in your browser, very large files (over 100 MB) may be slower and could potentially run into browser memory limits on devices with less RAM.' },
+        { question: 'Can I compress a password-protected PDF?', answer: 'If your PDF requires a password to open, you will need to unlock it first using our Unlock PDF tool. Once unlocked, you can compress it normally and then optionally re-protect it using our Protect PDF tool.' },
+        { question: 'Will the compressed PDF work everywhere?', answer: 'Yes, the compressed output is a standard PDF file that works in all PDF readers, browsers, and operating systems. It can be printed, emailed, and uploaded to any platform that accepts PDF files.' },
+    ],
+    relatedTools: [
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'Split PDF', href: '/split-pdf', icon: '✂️' },
+        { name: 'PDF to JPG', href: '/pdf-to-jpg', icon: '🖼️' },
+        { name: 'Protect PDF', href: '/protect-pdf', icon: '🔒' },
+        { name: 'Repair PDF', href: '/repair-pdf', icon: '🛠️' },
+        { name: 'Add Watermark', href: '/add-watermark', icon: '🎨' },
+        { name: 'Rotate PDF', href: '/rotate-pdf', icon: '🔄' },
+        { name: 'Crop PDF', href: '/crop-pdf', icon: '✂️' },
+    ],
+};
 
 const PageThumbnail = ({ pageData }) => {
     const canvasRef = useRef(null);
@@ -607,6 +646,15 @@ export default function CompressPdfPage() {
                     onNavigate={(p) => setPreviewPage(p)}
                 />
             )}
+
+            <ToolPageContent
+                title="Compress PDF Files"
+                howToUse={compressPdfContent.howToUse}
+                whyUseThis={compressPdfContent.whyUseThis}
+                tips={compressPdfContent.tips}
+                faqs={compressPdfContent.faqs}
+                relatedTools={compressPdfContent.relatedTools}
+            />
         </div>
     );
 }

@@ -1,8 +1,47 @@
 'use client';
 import { useState } from 'react';
 import FileUploader from '@/components/FileUploader';
+import ToolPageContent from '@/components/ToolPageContent';
 import { addPageNumbers } from '@/utils/conversionUtils';
 import { Hash, Download, File, Trash2, LayoutTemplate } from 'lucide-react';
+
+const addPageNumbersContent = {
+    howToUse: [
+        { title: 'Upload Your PDF', description: 'Click the upload area or drag and drop your PDF file. SababPDF will load your document and show you positioning options for the page numbers.' },
+        { title: 'Choose Number Position', description: 'Select where you want the page numbers to appear: Bottom Left, Bottom Center, or Bottom Right. The most common choice is Bottom Center, which is standard for professional documents and reports.' },
+        { title: 'Add Numbers and Download', description: 'Click "Add Page Numbers" and SababPDF will stamp sequential page numbers onto every page of your document. Download the result — perfect for reports, manuscripts, and multi-page documents.' },
+    ],
+    whyUseThis: [
+        { title: 'Professional Document Formatting', description: 'Page numbers are essential for multi-page documents like reports, theses, manuals, and proposals. They make it easy for readers to reference specific pages and navigate the document.' },
+        { title: 'Flexible Positioning', description: 'Choose from three position options: Bottom Left, Bottom Center, or Bottom Right. Select the placement that best matches your document style and formatting requirements.' },
+        { title: 'Works with Any PDF', description: 'Add page numbers to any PDF regardless of how it was created — scanned documents, Word conversions, merged PDFs, or digitally created files. The numbers are overlaid cleanly on every page.' },
+        { title: 'Private & Secure', description: 'All processing happens in your browser. Your documents are never uploaded to any server, making it safe to add page numbers to confidential reports, contracts, and sensitive business documents.' },
+    ],
+    tips: [
+        'Bottom Center is the most universally accepted position for page numbers in academic papers, reports, and books.',
+        'Bottom Right is common for business documents, slide handouts, and technical manuals.',
+        'If your document already has content at the bottom (like footnotes), choose a position that does not overlap with existing content.',
+        'For documents that will be printed and bound, Bottom Right or Bottom Left may be better than Center to avoid the binding area.',
+        'After adding page numbers, you can further process the PDF — add watermarks, compress the file, or merge it with other documents.',
+    ],
+    faqs: [
+        { question: 'Can I choose the starting page number?', answer: 'Currently, page numbers start from 1 and increase sequentially. If you need a different starting number, you can split the PDF to remove initial pages that should not be numbered, add numbers to the remaining pages, then merge everything back together.' },
+        { question: 'Will page numbers overlap with existing content?', answer: 'Page numbers are placed at the bottom margin of each page. If your PDF has content extending to the very bottom edge, the numbers might overlap. In this case, consider adding a larger margin to your source document before converting to PDF.' },
+        { question: 'Can I customize the font or size of page numbers?', answer: 'Currently, page numbers use a clean, standard font that works well with most documents. Custom font selection is not available, but the default styling is professional and suitable for most use cases.' },
+        { question: 'Does this tool add a table of contents?', answer: 'No, this tool adds sequential page numbers only. It does not create a table of contents. You would need to create a table of contents in your source document before converting to PDF.' },
+        { question: 'Can I add page numbers to specific pages only?', answer: 'Currently, page numbers are added to all pages. If you need to number only certain pages, split the PDF first, add numbers to the desired section, then merge the sections back together.' },
+    ],
+    relatedTools: [
+        { name: 'Add Watermark', href: '/add-watermark', icon: '🎨' },
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'Split PDF', href: '/split-pdf', icon: '✂️' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Rotate PDF', href: '/rotate-pdf', icon: '🔄' },
+        { name: 'Protect PDF', href: '/protect-pdf', icon: '🔒' },
+        { name: 'Crop PDF', href: '/crop-pdf', icon: '✂️' },
+        { name: 'PDF to Word', href: '/pdf-to-word', icon: '📝' },
+    ],
+};
 
 const AddPageNumbers = () => {
     const [file, setFile] = useState(null);
@@ -125,6 +164,15 @@ const AddPageNumbers = () => {
                     )}
                 </div>
             </div>
+
+            <ToolPageContent
+                title="Add Page Numbers to PDF"
+                howToUse={addPageNumbersContent.howToUse}
+                whyUseThis={addPageNumbersContent.whyUseThis}
+                tips={addPageNumbersContent.tips}
+                faqs={addPageNumbersContent.faqs}
+                relatedTools={addPageNumbersContent.relatedTools}
+            />
         </div>
     );
 };

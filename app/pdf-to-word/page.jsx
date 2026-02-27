@@ -1,8 +1,47 @@
 'use client';
 import { useState } from 'react';
 import FileUploader from '@/components/FileUploader';
+import ToolPageContent from '@/components/ToolPageContent';
 import { convertPdfToWord } from '@/utils/conversionUtils';
 import { FileText, Download, FileJson, Trash2 } from 'lucide-react';
+
+const pdfToWordContent = {
+    howToUse: [
+        { title: 'Upload Your PDF', description: 'Click the upload area or drag and drop a PDF file. SababPDF accepts all standard PDF documents including scanned PDFs, text-based PDFs, and mixed-content files.' },
+        { title: 'Start the Conversion', description: 'Click the "Convert to Word" button. SababPDF will extract text, headings, paragraphs, and formatting from your PDF and reconstruct them into an editable Word document (.docx format).' },
+        { title: 'Download Your Word File', description: 'Once the conversion is complete, click "Download Word" to save the editable .docx file to your device. Open it in Microsoft Word, Google Docs, or any compatible word processor to edit the content.' },
+    ],
+    whyUseThis: [
+        { title: 'Accurate Text Extraction', description: 'SababPDF intelligently extracts text content from PDFs while preserving paragraph structure, headings, and basic formatting. The output is a clean, editable Word document you can work with immediately.' },
+        { title: 'No Software Required', description: 'You do not need Microsoft Word, Adobe Acrobat, or any paid software installed on your computer. The conversion runs entirely in your browser and produces a standard .docx file.' },
+        { title: 'Privacy First', description: 'Your PDF is processed locally in your browser. The file is never uploaded to any server, ensuring complete privacy for sensitive documents like legal contracts, resumes, or medical records.' },
+        { title: 'Works on All Devices', description: 'Convert PDFs to Word on your desktop, laptop, tablet, or mobile phone. No app downloads needed — just open SababPDF in any modern browser and start converting.' },
+    ],
+    tips: [
+        'For best results, use text-based PDFs rather than scanned images. Text-based PDFs produce much more accurate Word documents.',
+        'If your PDF contains complex layouts with multiple columns, tables, or graphics, the Word output may need minor formatting adjustments.',
+        'After conversion, open the Word file and use "Find and Replace" to quickly fix any formatting inconsistencies.',
+        'For scanned document PDFs, consider using our PDF to Excel tool with OCR enabled first to extract tabular data.',
+        'Large PDFs with hundreds of pages may take a bit longer to convert. Be patient while the processing completes.',
+    ],
+    faqs: [
+        { question: 'Will the Word file look exactly like my PDF?', answer: 'The converter preserves text content, headings, and basic formatting. However, complex layouts, custom fonts, and precise positioning may differ slightly. The goal is to give you editable text that you can refine, not a pixel-perfect replica of the PDF appearance.' },
+        { question: 'Can I convert scanned PDFs to Word?', answer: 'SababPDF works best with text-based PDFs where the text is selectable. For scanned PDFs (which are essentially images), the tool may extract limited text. For scanned documents, specialized OCR software may produce better results.' },
+        { question: 'Is there a page limit for conversion?', answer: 'There is no strict page limit. You can convert PDFs of any size. However, very large documents (100+ pages) may take longer to process since everything runs in your browser.' },
+        { question: 'What Word format is produced?', answer: 'The output is a .docx file, which is the modern Microsoft Word format. It can be opened in Microsoft Word 2007 and later, Google Docs, LibreOffice Writer, Apple Pages, and most other word processors.' },
+        { question: 'Is my PDF uploaded to a server?', answer: 'No. SababPDF processes your PDF entirely in your browser using JavaScript. Your file never leaves your device. This makes it safe for confidential documents that you cannot share with third-party services.' },
+    ],
+    relatedTools: [
+        { name: 'Word to PDF', href: '/word-to-pdf', icon: '📝' },
+        { name: 'PDF to Excel', href: '/pdf-to-excel', icon: '📊' },
+        { name: 'PDF to JPG', href: '/pdf-to-jpg', icon: '🖼️' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'Split PDF', href: '/split-pdf', icon: '✂️' },
+        { name: 'Protect PDF', href: '/protect-pdf', icon: '🔒' },
+        { name: 'Unlock PDF', href: '/unlock-pdf', icon: '🔓' },
+    ],
+};
 
 const PdfToWord = () => {
     const [file, setFile] = useState(null);
@@ -101,6 +140,15 @@ const PdfToWord = () => {
                     )}
                 </div>
             </div>
+
+            <ToolPageContent
+                title="Convert PDF to Word"
+                howToUse={pdfToWordContent.howToUse}
+                whyUseThis={pdfToWordContent.whyUseThis}
+                tips={pdfToWordContent.tips}
+                faqs={pdfToWordContent.faqs}
+                relatedTools={pdfToWordContent.relatedTools}
+            />
         </div>
     );
 };

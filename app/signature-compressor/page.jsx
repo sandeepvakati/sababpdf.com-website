@@ -1,6 +1,45 @@
 'use client';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Download, Upload, Trash2, Crop, Minimize2, Image as ImageIcon, ZoomIn, ZoomOut, RotateCw, FlipHorizontal, FlipVertical } from 'lucide-react';
+import ToolPageContent from '@/components/ToolPageContent';
+
+const signatureCompressorContent = {
+    howToUse: [
+        { title: 'Upload Your Signature Image', description: 'Click the upload area or drag and drop your signature image file (PNG, JPG, or WEBP). SababPDF will display the image with its original dimensions and file size.' },
+        { title: 'Choose Your Operation', description: 'Use the tabs to select your desired operation: Compress (reduce file size to a specific target like 10KB, 50KB, or a custom size), Crop (use presets or draw a free selection to trim the image), or Resize (set exact pixel dimensions).' },
+        { title: 'Process and Download', description: 'Click the process button and download the result. The tool shows the original and output file sizes with the percentage reduction achieved. Use the Rotate and Flip buttons for additional adjustments.' },
+    ],
+    whyUseThis: [
+        { title: 'Precise File Size Control', description: 'Choose from preset target sizes (10KB, 20KB, 50KB, 100KB, 200KB, 500KB, 2MB, 5MB) or use the custom slider to target any size between 5KB and 200KB. The tool iteratively compresses to meet your exact target.' },
+        { title: 'All-in-One Tool', description: 'Compress, crop, and resize — all in one place. No need to switch between different tools. Process your signature image with multiple operations in a single workflow.' },
+        { title: 'Visual Crop with Presets', description: 'Crop signatures using preset dimensions (passport, stamp, ID card, custom) or draw a free-form selection directly on the image. Resize handles let you fine-tune the crop area.' },
+        { title: 'Transform Controls', description: 'Rotate images in 90° increments and flip horizontally or vertically. Essential for correcting orientation of scanned or photographed signatures.' },
+    ],
+    tips: [
+        'For government forms and exam applications, 10KB-20KB targets with a size like 140×60 pixels are commonly required.',
+        'Use JPEG format output for the smallest file sizes when quality can be slightly reduced.',
+        'The "Custom Size" slider is ideal when you have a specific file size requirement from an upload form.',
+        'Crop first, then compress. Removing unnecessary white space around your signature before compression produces better results.',
+        'For online applications that require signatures under a specific file size, start with the exact target and check if the quality is acceptable.',
+    ],
+    faqs: [
+        { question: 'What file size targets are available?', answer: 'You can choose from preset targets: 10KB (ultra tiny), 20KB (very small), 50KB (government forms), 100KB (most websites), 200KB (high quality email), 500KB (detailed), 2MB (high quality), and 5MB (best quality). You can also use the custom slider to target any size between 5KB and 200KB.' },
+        { question: 'Will compression reduce image quality?', answer: 'Yes, there is a trade-off between file size and quality. Smaller targets require more compression, which reduces quality. The tool uses iterative compression to find the best quality at your target size. For signatures, even significant compression usually keeps the image readable.' },
+        { question: 'What image formats are supported?', answer: 'You can upload PNG, JPG, JPEG, and WEBP images. The output is saved in JPEG format for optimal compression. JPEG provides the best file size reduction for photographic content like signature images.' },
+        { question: 'Can I crop to specific dimensions?', answer: 'Yes! The Crop tab offers presets for common dimensions (Passport: 140×60px, Stamp: 200×200px, ID Card: 300×100px) and a free-form option where you draw your own crop area. You can also enter exact pixel coordinates manually.' },
+        { question: 'Is my signature image stored anywhere?', answer: 'No. All processing happens entirely in your browser. Your signature image is never uploaded to any server, ensuring your personal signature data remains private and secure.' },
+    ],
+    relatedTools: [
+        { name: 'JPG to PDF', href: '/jpg-to-pdf', icon: '🖼️' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Crop PDF', href: '/crop-pdf', icon: '✂️' },
+        { name: 'Add Watermark', href: '/add-watermark', icon: '🎨' },
+        { name: 'Scan to PDF', href: '/scan-to-pdf', icon: '📱' },
+        { name: 'PDF to JPG', href: '/pdf-to-jpg', icon: '🖼️' },
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'Protect PDF', href: '/protect-pdf', icon: '🔒' },
+    ],
+};
 
 // ─── Format file size ───────────────────────────────────────────────────────────
 const formatSize = (bytes) => {
@@ -863,6 +902,15 @@ const SignatureCompressor = () => {
                     )}
                 </div>
             </div>
+
+            <ToolPageContent
+                title="Signature Image Compressor & Crop"
+                howToUse={signatureCompressorContent.howToUse}
+                whyUseThis={signatureCompressorContent.whyUseThis}
+                tips={signatureCompressorContent.tips}
+                faqs={signatureCompressorContent.faqs}
+                relatedTools={signatureCompressorContent.relatedTools}
+            />
         </div>
     );
 };

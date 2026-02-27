@@ -4,7 +4,46 @@ import { QRCodeSVG } from 'qrcode.react';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { Smartphone, Download, Loader2 } from 'lucide-react';
+import ToolPageContent from '@/components/ToolPageContent';
 import { convertImageToPdf } from '@/utils/conversionUtils';
+
+const scanToPdfContent = {
+    howToUse: [
+        { title: 'Open This Page on Your Computer', description: 'Load the Scan to PDF tool in your desktop or laptop browser. A unique QR code and session ID will be generated automatically for your scanning session.' },
+        { title: 'Scan QR Code with Your Phone', description: 'Open your smartphone camera and scan the QR code displayed on screen. This opens a mobile-friendly page where you can take photos of documents using your phone\'s camera.' },
+        { title: 'Take Photos and Download PDF', description: 'Take photos of your documents on your phone. The images sync instantly to your computer browser. When all pages are captured, click "Download PDF" to generate a multi-page PDF from all scanned images.' },
+    ],
+    whyUseThis: [
+        { title: 'Use Your Phone as a Scanner', description: 'Turn any smartphone into a document scanner. No need for a physical scanner or specialized scanning app. Simply take photos with your phone camera and they appear on your computer instantly.' },
+        { title: 'Real-Time Sync', description: 'Photos taken on your phone appear on your desktop browser in real time. No need to email images to yourself, use USB cables, or transfer files through cloud storage.' },
+        { title: 'Multi-Page Support', description: 'Scan multiple document pages in one session. Each photo becomes a page in the final PDF. Perfect for multi-page contracts, receipts, forms, and documents.' },
+        { title: 'Instant PDF Generation', description: 'Once all pages are captured, generate a clean PDF document with one click. The resulting PDF contains all scanned images in the order they were taken.' },
+    ],
+    tips: [
+        'Take photos in good lighting with the document flat on a surface for the clearest scans.',
+        'Hold your phone directly above the document (not at an angle) to avoid perspective distortion.',
+        'Scan pages in the correct order, as they will appear in the PDF in the same sequence they were captured.',
+        'For multi-page documents, take one photo per page. Each photo becomes a separate page in the final PDF.',
+        'Make sure both your phone and computer are connected to the internet for real-time image syncing.',
+    ],
+    faqs: [
+        { question: 'Do I need to install an app on my phone?', answer: 'No app installation is required. Simply scan the QR code with your phone\'s camera, and the mobile scanning page opens directly in your phone\'s browser. Works on both iPhone and Android.' },
+        { question: 'How does the phone-to-computer sync work?', answer: 'When you scan the QR code, your phone connects to the same session as your computer browser. Photos taken on your phone are uploaded to a temporary cloud session and appear on your computer in real time. The session is temporary and automatically cleaned up.' },
+        { question: 'Can I rearrange the page order?', answer: 'Currently, pages appear in the order they were photographed. If you need a different order, take the photos in the desired sequence. Alternatively, generate the PDF and use our Split and Merge tools to rearrange pages.' },
+        { question: 'What happens to my scanned images?', answer: 'Scanned images are stored temporarily for the duration of your session only. Once you close the browser or generate the PDF, the session data is automatically cleaned up. Your scans are not permanently stored anywhere.' },
+        { question: 'What is the quality of the resulting PDF?', answer: 'The PDF quality depends on the resolution of your phone\'s camera. Modern smartphones produce high-resolution photos that result in clear, readable PDFs suitable for most uses including printing and digital archiving.' },
+    ],
+    relatedTools: [
+        { name: 'JPG to PDF', href: '/jpg-to-pdf', icon: '🖼️' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'Crop PDF', href: '/crop-pdf', icon: '✂️' },
+        { name: 'Rotate PDF', href: '/rotate-pdf', icon: '🔄' },
+        { name: 'Add Page Numbers', href: '/add-page-numbers', icon: '🔢' },
+        { name: 'Protect PDF', href: '/protect-pdf', icon: '🔒' },
+        { name: 'PDF to Word', href: '/pdf-to-word', icon: '📝' },
+    ],
+};
 
 const ScanToPdf = () => {
     const [sessionId, setSessionId] = useState('');
@@ -195,6 +234,15 @@ const ScanToPdf = () => {
                     </div>
                 </div>
             </div>
+
+            <ToolPageContent
+                title="Scan Documents to PDF"
+                howToUse={scanToPdfContent.howToUse}
+                whyUseThis={scanToPdfContent.whyUseThis}
+                tips={scanToPdfContent.tips}
+                faqs={scanToPdfContent.faqs}
+                relatedTools={scanToPdfContent.relatedTools}
+            />
         </div>
     );
 };

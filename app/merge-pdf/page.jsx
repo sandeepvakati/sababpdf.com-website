@@ -1,11 +1,50 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import FileUploader from '@/components/FileUploader';
+import ToolPageContent from '@/components/ToolPageContent';
 import { mergePdfs, mergePages } from '@/utils/pdfUtils';
 import { Layers, Download, X, Plus, ChevronLeft, ChevronRight, Eye, Pencil, RotateCcw } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+const mergePdfContent = {
+    howToUse: [
+        { title: 'Upload Your PDF Files', description: 'Click "Select PDF files" or simply drag and drop multiple PDF documents into the upload area. You can add as many files as you need — there is no limit on the number of PDFs you can merge at once.' },
+        { title: 'Arrange the Page Order', description: 'Once your files are loaded, you will see thumbnails of each page. Click the "Rearrange Pages" button to set a custom page order. Click pages in the sequence you want them to appear in the final document. You can also preview any page by hovering and clicking the eye icon.' },
+        { title: 'Merge and Download', description: 'When you are happy with the order, click the "Merge" button. Your combined PDF will be ready to download instantly. The merged file preserves the original quality and formatting of all your source documents.' },
+    ],
+    whyUseThis: [
+        { title: '100% Free, No Limits', description: 'SababPDF Merge is completely free with no file size limits, no watermarks, and no registration required. Merge as many PDFs as you need without any restrictions.' },
+        { title: 'Browser-Based Privacy', description: 'All merging happens directly in your web browser. Your PDF files are never uploaded to any server, which means your sensitive documents stay completely private and secure on your own device.' },
+        { title: 'Page-Level Control', description: 'Unlike many other tools, SababPDF gives you full control at the individual page level. You can rearrange, select, or exclude specific pages from different PDFs before merging — perfect for creating custom compilations.' },
+        { title: 'Works on Any Device', description: 'Whether you are on a Windows PC, Mac, Chromebook, tablet, or phone, SababPDF Merge works seamlessly in Chrome, Firefox, Safari, and Edge. No software installation needed.' },
+    ],
+    tips: [
+        'If your PDFs are very large (over 50 MB), consider compressing them first using our Compress PDF tool to make the merge process faster.',
+        'Use the "Rearrange Pages" mode to pick specific pages from multiple files — for example, take page 1 from Document A and pages 3-5 from Document B to create a custom document.',
+        'Always preview important pages using the eye icon before merging to make sure the correct pages are included in the right order.',
+        'Name your source files clearly before merging so you can easily identify which pages belong to which document in the page list.',
+        'After merging, you can further process your combined PDF using our other tools — add page numbers, watermarks, or compress the final result.',
+    ],
+    faqs: [
+        { question: 'Is it safe to merge my PDF files online?', answer: 'Yes, absolutely. SababPDF processes all files directly in your browser using JavaScript. Your documents are never uploaded to any server. Once you close the browser tab, all data is cleared. This makes SababPDF one of the most secure PDF merge tools available.' },
+        { question: 'How many PDF files can I merge at once?', answer: 'There is no fixed limit on the number of PDFs you can merge. You can combine 2 files or 100+ files in a single session. However, very large batches may be slower depending on your device\'s processing power and available memory.' },
+        { question: 'Does merging PDFs reduce the quality of my documents?', answer: 'No. SababPDF uses lossless merging technology, which means your pages retain their original resolution, fonts, images, and formatting. The merged PDF is identical in quality to the original source files.' },
+        { question: 'Can I rearrange pages from different PDFs before merging?', answer: 'Yes! Click the "Rearrange Pages" button to enter edit mode. Then click pages in any order you want — you can interleave pages from different files, skip pages you don\'t need, or reorder them freely. This gives you full control over the final document structure.' },
+        { question: 'What file formats can I merge with this tool?', answer: 'This tool is specifically designed for PDF files (.pdf). If you have Word, Excel, or image files, you can first convert them to PDF using our other tools (Word to PDF, Excel to PDF, JPG to PDF) and then merge the resulting PDFs together.' },
+    ],
+    relatedTools: [
+        { name: 'Split PDF', href: '/split-pdf', icon: '✂️' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Add Page Numbers', href: '/add-page-numbers', icon: '🔢' },
+        { name: 'Rotate PDF', href: '/rotate-pdf', icon: '🔄' },
+        { name: 'Add Watermark', href: '/add-watermark', icon: '🎨' },
+        { name: 'PDF to Word', href: '/pdf-to-word', icon: '📝' },
+        { name: 'Protect PDF', href: '/protect-pdf', icon: '🔒' },
+        { name: 'JPG to PDF', href: '/jpg-to-pdf', icon: '🖼️' },
+    ],
+};
 
 const PageThumbnail = ({ pageData }) => {
     const canvasRef = useRef(null);
@@ -432,6 +471,15 @@ export default function MergePdfPage() {
                     onNavigate={(p) => setPreviewPage(p)}
                 />
             )}
+
+            <ToolPageContent
+                title="Merge PDF Files"
+                howToUse={mergePdfContent.howToUse}
+                whyUseThis={mergePdfContent.whyUseThis}
+                tips={mergePdfContent.tips}
+                faqs={mergePdfContent.faqs}
+                relatedTools={mergePdfContent.relatedTools}
+            />
         </div>
     );
 }

@@ -1,8 +1,47 @@
 'use client';
 import { useState } from 'react';
 import FileUploader from '@/components/FileUploader';
+import ToolPageContent from '@/components/ToolPageContent';
 import { convertExcelToPdf } from '@/utils/conversionUtils';
 import { FileSpreadsheet, Download, FileJson, Trash2 } from 'lucide-react';
+
+const excelToPdfContent = {
+    howToUse: [
+        { title: 'Upload Your Excel File', description: 'Click the upload area or drag and drop your .xlsx or .xls spreadsheet file. SababPDF will read your spreadsheet data including all sheets, formatting, and cell values.' },
+        { title: 'Convert to PDF', description: 'Click the "Convert to PDF" button. SababPDF processes your spreadsheet and generates a clean, well-formatted PDF that preserves your table structure, column headers, and data layout.' },
+        { title: 'Download Your PDF', description: 'Once the conversion is complete, click "Download PDF" to save the file. The PDF version of your spreadsheet is ready for sharing, printing, or archiving.' },
+    ],
+    whyUseThis: [
+        { title: 'Preserves Table Structure', description: 'Your spreadsheet data is converted into clean, readable PDF tables with proper column alignment and row formatting. Headers, cell borders, and data layout are all maintained.' },
+        { title: 'No Excel Required', description: 'You do not need Microsoft Excel installed on your computer. SababPDF reads .xlsx and .xls files directly in your browser and converts them to PDF without any additional software.' },
+        { title: 'Share Without Editing Risk', description: 'PDFs cannot be easily edited, making them ideal for sharing financial reports, invoices, data summaries, and other spreadsheets where you want to prevent accidental changes.' },
+        { title: 'Secure Local Processing', description: 'Your spreadsheet is processed entirely in your browser. Sensitive financial data, employee information, or business metrics are never uploaded to any external server.' },
+    ],
+    tips: [
+        'For best results, make sure your Excel file has clean formatting with clear headers and consistent data types in each column.',
+        'If your spreadsheet has multiple sheets, all sheets will be included in the PDF output. Remove any sheets you do not want to include before converting.',
+        'Very wide spreadsheets with many columns may need to be reformatted or split into multiple sheets for optimal PDF readability.',
+        'After conversion, use our Compress PDF tool if the resulting PDF is too large for email attachments or uploads.',
+        'If you need to convert the PDF back to Excel later, use our PDF to Excel tool.',
+    ],
+    faqs: [
+        { question: 'Does the PDF preserve formulas from Excel?', answer: 'The PDF shows the calculated values (results) of your formulas, not the formulas themselves. PDFs are static documents and do not support live calculations. This is actually ideal for sharing results without exposing your formula logic.' },
+        { question: 'Are charts and graphs preserved?', answer: 'Currently, the conversion focuses primarily on tabular data. Charts, graphs, and embedded images may not be fully reproduced in the PDF output. For best results, export charts separately as images.' },
+        { question: 'Can I convert .xls files (older Excel format)?', answer: 'Yes, SababPDF supports both the modern .xlsx format and the older .xls format. Both file types can be uploaded and converted to PDF.' },
+        { question: 'How does it handle multiple sheets?', answer: 'All sheets in your Excel workbook will be processed and included in the PDF output. Each sheet appears as a separate section in the resulting PDF document.' },
+        { question: 'Is there a file size limit?', answer: 'There is no strict file size limit. However, since processing happens in your browser, very large spreadsheets with thousands of rows may take longer. For optimal performance, keep files under 10 MB.' },
+    ],
+    relatedTools: [
+        { name: 'PDF to Excel', href: '/pdf-to-excel', icon: '📊' },
+        { name: 'Word to PDF', href: '/word-to-pdf', icon: '📝' },
+        { name: 'Compress PDF', href: '/compress-pdf', icon: '🗜️' },
+        { name: 'Merge PDF', href: '/merge-pdf', icon: '📑' },
+        { name: 'Protect PDF', href: '/protect-pdf', icon: '🔒' },
+        { name: 'Add Watermark', href: '/add-watermark', icon: '🎨' },
+        { name: 'HTML to PDF', href: '/html-to-pdf', icon: '🌐' },
+        { name: 'PDF to Word', href: '/pdf-to-word', icon: '📄' },
+    ],
+};
 
 const ExcelToPdf = () => {
     const [file, setFile] = useState(null);
@@ -100,6 +139,15 @@ const ExcelToPdf = () => {
                     )}
                 </div>
             </div>
+
+            <ToolPageContent
+                title="Convert Excel to PDF"
+                howToUse={excelToPdfContent.howToUse}
+                whyUseThis={excelToPdfContent.whyUseThis}
+                tips={excelToPdfContent.tips}
+                faqs={excelToPdfContent.faqs}
+                relatedTools={excelToPdfContent.relatedTools}
+            />
         </div>
     );
 };
