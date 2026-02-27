@@ -5,7 +5,7 @@ export const mergePdfs = async (files) => {
 
     for (const file of files) {
         const arrayBuffer = await file.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer);
+        const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
         const copiedPages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
         copiedPages.forEach((page) => mergedPdf.addPage(page));
     }
@@ -22,7 +22,7 @@ export const mergePages = async (pageOrder) => {
         let pdfDoc = pdfCache.get(file);
         if (!pdfDoc) {
             const arrayBuffer = await file.arrayBuffer();
-            pdfDoc = await PDFDocument.load(arrayBuffer);
+            pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
             pdfCache.set(file, pdfDoc);
         }
         const [copiedPage] = await mergedPdf.copyPages(pdfDoc, [pageIndex]);
@@ -35,7 +35,7 @@ export const mergePages = async (pageOrder) => {
 
 export const splitPdf = async (file, pageIndices) => {
     const arrayBuffer = await file.arrayBuffer();
-    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
     const newPdf = await PDFDocument.create();
 
     const copiedPages = await newPdf.copyPages(pdfDoc, pageIndices);
@@ -47,14 +47,14 @@ export const splitPdf = async (file, pageIndices) => {
 
 export const compressPdf = async (file) => {
     const arrayBuffer = await file.arrayBuffer();
-    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
     const pdfBytes = await pdfDoc.save();
     return new Blob([pdfBytes], { type: 'application/pdf' });
 };
 
 export const getPdfPageCount = async (file) => {
     const arrayBuffer = await file.arrayBuffer();
-    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
     return pdfDoc.getPageCount();
 };
 

@@ -144,7 +144,17 @@ export default function MergePdfPage() {
             for (const file of newFiles) {
                 try {
                     const arrayBuffer = await file.arrayBuffer();
-                    const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    let pdfDoc;
+                    try {
+                        pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer, password: '' }).promise;
+                    } catch (firstErr) {
+                        // Retry without worker for problematic PDFs
+                        try {
+                            pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0), password: '', isEvalSupported: false, disableAutoFetch: true, disableStream: true }).promise;
+                        } catch (retryErr) {
+                            throw retryErr;
+                        }
+                    }
                     const color = fileColors[fileColorIdx.current % fileColors.length];
                     fileColorIdx.current++;
                     newRefs.push({ file, color, name: file.name });
@@ -158,7 +168,7 @@ export default function MergePdfPage() {
                     }
                 } catch (err) {
                     console.error(`Error loading ${file.name}:`, err);
-                    alert(`Failed to load "${file.name}". Make sure it's a valid PDF.`);
+                    alert(`Failed to load "${file.name}". Make sure it's a valid PDF file and not password-protected.`);
                 }
             }
             setAllPages((prev) => [...prev, ...newPages]);
