@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FileBadge, ArrowRight, Download, Loader2, Crop, Check, X } from 'lucide-react';
 import ToolPageContent from '@/components/ToolPageContent';
 import { cropPdf } from '@/utils/conversionUtils';
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 const cropPdfContent = {
     howToUse: [
@@ -45,7 +45,7 @@ const cropPdfContent = {
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined' && 'Worker' in window) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/legacy/build/pdf.worker.min.mjs`;
 }
 
 const PageThumbnail = ({ pdf, pageIndex, isActive, onClick }) => {

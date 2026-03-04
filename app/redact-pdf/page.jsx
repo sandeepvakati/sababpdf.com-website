@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FileBadge, ArrowRight, Download, Loader2, Trash2, Undo, MousePointer } from 'lucide-react';
 import ToolPageContent from '@/components/ToolPageContent';
 import { applyRedactions } from '@/utils/conversionUtils';
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 const redactPdfContent = {
     howToUse: [
@@ -45,7 +45,7 @@ const redactPdfContent = {
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined' && 'Worker' in window) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/legacy/build/pdf.worker.min.mjs`;
 }
 
 const RedactPdf = () => {

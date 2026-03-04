@@ -3,12 +3,12 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import FileUploader from '@/components/FileUploader';
 import ToolPageContent from '@/components/ToolPageContent';
 import { Minimize2, Download, FileText, Trash2, X, ChevronLeft, ChevronRight, Eye, Zap, Shield, Gauge, Pencil, RotateCcw } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 import { PDFDocument } from 'pdf-lib';
 
 if (typeof window !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/legacy/build/pdf.worker.min.mjs`;
 }
 
 const compressPdfContent = {

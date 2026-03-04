@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, ArrowRightLeft, Layers, Eye, ZoomIn, ZoomOut } from 'lucide-react';
 import ToolPageContent from '@/components/ToolPageContent';
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 const comparePdfContent = {
     howToUse: [
@@ -44,7 +44,7 @@ const comparePdfContent = {
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined' && 'Worker' in window) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/legacy/build/pdf.worker.min.mjs`;
 }
 
 const ComparePdf = () => {

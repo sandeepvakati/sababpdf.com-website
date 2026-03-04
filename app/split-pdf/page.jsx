@@ -4,10 +4,10 @@ import FileUploader from '@/components/FileUploader';
 import ToolPageContent from '@/components/ToolPageContent';
 import { splitPdf } from '@/utils/pdfUtils';
 import { Scissors, Download, X, FileText, ChevronLeft, ChevronRight, Eye, Pencil, RotateCcw, Trash2 } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 if (typeof window !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/legacy/build/pdf.worker.min.mjs`;
 }
 
 const splitPdfContent = {

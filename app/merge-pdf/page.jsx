@@ -4,10 +4,10 @@ import FileUploader from '@/components/FileUploader';
 import ToolPageContent from '@/components/ToolPageContent';
 import { mergePdfs, mergePages } from '@/utils/pdfUtils';
 import { Layers, Download, X, Plus, ChevronLeft, ChevronRight, Eye, Pencil, RotateCcw } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 if (typeof window !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/legacy/build/pdf.worker.min.mjs`;
 }
 
 const mergePdfContent = {
