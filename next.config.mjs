@@ -12,6 +12,12 @@ const nextConfig = {
         path: false,
       };
     }
+
+    config.module.rules.push({
+      test: /pdf\.worker\.(min\.)?mjs$/,
+      type: 'asset/resource',
+    });
+
     return config;
   },
 };
