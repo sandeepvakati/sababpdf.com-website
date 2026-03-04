@@ -11,11 +11,10 @@ const nextConfig = {
         fs: false,
         path: false,
       };
-      // ✅ DO NOT add any rules for pdf.worker.min.mjs
-      // Let it be served as a static file from public/
+    }
 
-      return config;
-    },
-  };
+    return config;
+  },
+};
 
-  export default nextConfig;
+export default nextConfig;
