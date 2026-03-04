@@ -46,7 +46,7 @@ const tools = [
     title: 'PDF to PDF/A',
     description: 'Convert PDF documents to PDF/A for archiving and long-term preservation.',
     icon: FileBadge,
-    href: '/pdf-to-pdfa',
+    href: '/pdf-to-pdf-a',
     color: 'bg-indigo-500',
   },
   {

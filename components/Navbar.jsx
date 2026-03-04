@@ -22,7 +22,7 @@ const Navbar = () => {
         ],
         optimize: [
             { name: 'Compress PDF', href: '/compress-pdf', icon: Minimize2, color: 'text-blue-500' },
-            { name: 'PDF to PDF/A', href: '/pdf-to-pdfa', icon: FileBadge, color: 'text-indigo-500' },
+            { name: 'PDF to PDF/A', href: '/pdf-to-pdf-a', icon: FileBadge, color: 'text-indigo-500' },
             { name: 'Repair PDF', href: '/repair-pdf', icon: Wrench, color: 'text-gray-500' },
             { name: 'Add Watermark', href: '/add-watermark', icon: Stamp, color: 'text-purple-600' },
             { name: 'Crop PDF', href: '/crop-pdf', icon: Crop, color: 'text-orange-500' },

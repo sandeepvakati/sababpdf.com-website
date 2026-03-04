@@ -7,7 +7,7 @@ import { Layers, Download, X, Plus, ChevronLeft, ChevronRight, Eye, Pencil, Rota
 import * as pdfjsLib from 'pdfjs-dist';
 
 if (typeof window !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 }
 
 const mergePdfContent = {
