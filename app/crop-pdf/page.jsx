@@ -45,7 +45,7 @@ const cropPdfContent = {
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined' && 'Worker' in window) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/legacy/build/pdf.worker.min.mjs`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 }
 
 const PageThumbnail = ({ pdf, pageIndex, isActive, onClick }) => {

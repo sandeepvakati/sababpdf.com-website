@@ -7,7 +7,7 @@ import { Scissors, Download, X, FileText, ChevronLeft, ChevronRight, Eye, Pencil
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 if (typeof window !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/legacy/build/pdf.worker.min.mjs`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 }
 
 const splitPdfContent = {
