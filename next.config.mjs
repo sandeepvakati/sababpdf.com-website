@@ -16,6 +16,9 @@ const nextConfig = {
     config.module.rules.push({
       test: /pdf\.worker\.(min\.)?mjs$/,
       type: 'asset/resource',
+      generator: {
+        filename: 'static/chunks/[name].[hash][ext]',
+      },
     });
 
     return config;
