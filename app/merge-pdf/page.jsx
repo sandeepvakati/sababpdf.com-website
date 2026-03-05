@@ -4,11 +4,7 @@ import FileUploader from '@/components/FileUploader';
 import ToolPageContent from '@/components/ToolPageContent';
 import { mergePdfs, mergePages } from '@/utils/pdfUtils';
 import { Layers, Download, X, Plus, ChevronLeft, ChevronRight, Eye, Pencil, RotateCcw } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-
-if (typeof window !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-}
+import usePdfjs from '@/hooks/usePdfjs';
 
 const mergePdfContent = {
     howToUse: [
@@ -125,6 +121,7 @@ const PagePreviewModal = ({ previewData, onClose, allPages, onNavigate }) => {
 };
 
 export default function MergePdfPage() {
+    const { pdfjsLib } = usePdfjs();
     const [allPages, setAllPages] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -139,6 +136,7 @@ export default function MergePdfPage() {
     const fileColorIdx = useRef(0);
 
     const loadPdfFiles = useCallback(async (newFiles) => {
+        if (!pdfjsLib) return;
         setIsLoading(true);
         try {
             const newPages = [];
@@ -180,7 +178,7 @@ export default function MergePdfPage() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [pdfjsLib]);
 
     const handleFilesSelected = (files) => loadPdfFiles(files);
 

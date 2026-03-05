@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, ArrowRightLeft, Layers, Eye, ZoomIn, ZoomOut } from 'lucide-react';
 import ToolPageContent from '@/components/ToolPageContent';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { loadPdfjs } from '@/utils/loadPdfjs';
 
 const comparePdfContent = {
     howToUse: [
@@ -42,11 +42,6 @@ const comparePdfContent = {
     ],
 };
 
-// Configure PDF.js worker
-if (typeof window !== 'undefined' && 'Worker' in window) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-}
-
 const ComparePdf = () => {
     const [file1, setFile1] = useState(null);
     const [file2, setFile2] = useState(null);
@@ -66,6 +61,9 @@ const ComparePdf = () => {
         const loadPdfs = async () => {
             if (file1 && file2) {
                 try {
+                    const pdfjsLib = await loadPdfjs();
+                    if (!pdfjsLib) return;
+
                     const buffer1 = await file1.arrayBuffer();
                     const uint8_1 = new Uint8Array(buffer1);
                     let doc1;

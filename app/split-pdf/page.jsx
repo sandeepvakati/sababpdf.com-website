@@ -4,11 +4,7 @@ import FileUploader from '@/components/FileUploader';
 import ToolPageContent from '@/components/ToolPageContent';
 import { splitPdf } from '@/utils/pdfUtils';
 import { Scissors, Download, X, FileText, ChevronLeft, ChevronRight, Eye, Pencil, RotateCcw, Trash2 } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-
-if (typeof window !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-}
+import usePdfjs from '@/hooks/usePdfjs';
 
 const splitPdfContent = {
     howToUse: [
@@ -125,6 +121,7 @@ const PagePreviewModal = ({ previewData, onClose, allPages, onNavigate }) => {
 };
 
 export default function SplitPdfPage() {
+    const { pdfjsLib } = usePdfjs();
     const [file, setFile] = useState(null);
     const [pdfDoc, setPdfDoc] = useState(null);
     const [pageCount, setPageCount] = useState(0);
@@ -139,7 +136,7 @@ export default function SplitPdfPage() {
     const [selectedOrder, setSelectedOrder] = useState([]);
 
     const handleFileSelected = useCallback(async (files) => {
-        if (files.length === 0) return;
+        if (!pdfjsLib || files.length === 0) return;
         const selectedFile = files[0];
         setFile(selectedFile);
         setRange('');
@@ -171,7 +168,7 @@ export default function SplitPdfPage() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [pdfjsLib]);
 
     const handleRemoveFile = () => {
         setFile(null);

@@ -3,13 +3,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import FileUploader from '@/components/FileUploader';
 import ToolPageContent from '@/components/ToolPageContent';
 import { Minimize2, Download, FileText, Trash2, X, ChevronLeft, ChevronRight, Eye, Zap, Shield, Gauge, Pencil, RotateCcw } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import usePdfjs from '@/hooks/usePdfjs';
 
 import { PDFDocument } from 'pdf-lib';
-
-if (typeof window !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-}
 
 const compressPdfContent = {
     howToUse: [
@@ -192,6 +188,7 @@ const compressionLevels = [
 ];
 
 export default function CompressPdfPage() {
+    const { pdfjsLib } = usePdfjs();
     const [file, setFile] = useState(null);
     const [pdfDoc, setPdfDoc] = useState(null);
     const [pageCount, setPageCount] = useState(0);
@@ -206,7 +203,7 @@ export default function CompressPdfPage() {
     const [selectedOrder, setSelectedOrder] = useState([]);
 
     const handleFileSelected = useCallback(async (files) => {
-        if (files.length === 0) return;
+        if (!pdfjsLib || files.length === 0) return;
         const selectedFile = files[0];
         setFile(selectedFile);
         setDownloadUrl(null);
@@ -235,7 +232,7 @@ export default function CompressPdfPage() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [pdfjsLib]);
 
     const handleRemoveFile = () => {
         setFile(null);

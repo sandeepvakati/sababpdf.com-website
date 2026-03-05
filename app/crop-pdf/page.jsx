@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FileBadge, ArrowRight, Download, Loader2, Crop, Check, X } from 'lucide-react';
 import ToolPageContent from '@/components/ToolPageContent';
 import { cropPdf } from '@/utils/conversionUtils';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { loadPdfjs } from '@/utils/loadPdfjs';
 
 const cropPdfContent = {
     howToUse: [
@@ -42,11 +42,6 @@ const cropPdfContent = {
         { name: 'Repair PDF', href: '/repair-pdf', icon: '🛠️' },
     ],
 };
-
-// Configure PDF.js worker
-if (typeof window !== 'undefined' && 'Worker' in window) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-}
 
 const PageThumbnail = ({ pdf, pageIndex, isActive, onClick }) => {
     const canvasRef = useRef(null);
@@ -104,6 +99,8 @@ const CropPdf = () => {
         if (file) {
             const loadPdf = async () => {
                 try {
+                    const pdfjsLib = await loadPdfjs();
+                    if (!pdfjsLib) return;
                     const arrayBuffer = await file.arrayBuffer();
                     const uint8Array = new Uint8Array(arrayBuffer);
                     let pdf;

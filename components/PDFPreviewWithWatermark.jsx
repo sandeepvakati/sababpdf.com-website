@@ -1,9 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Set worker path
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+import { loadPdfjs } from '@/utils/loadPdfjs';
 
 const PDFPreviewWithWatermark = ({ file, watermarkText, watermarkType, watermarkImage, options }) => {
     const containerRef = useRef(null);
@@ -16,6 +13,8 @@ const PDFPreviewWithWatermark = ({ file, watermarkText, watermarkType, watermark
 
         const loadPDF = async () => {
             try {
+                const pdfjsLib = await loadPdfjs();
+                if (!pdfjsLib) return;
                 const fileReader = new FileReader();
 
                 fileReader.onload = async function () {

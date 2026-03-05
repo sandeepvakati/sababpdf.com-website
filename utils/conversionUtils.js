@@ -1,13 +1,11 @@
 import { PDFDocument, degrees, rgb } from 'pdf-lib';
 import mammoth from 'mammoth';
 import html2pdf from 'html2pdf.js';
-import * as pdfjsLib from 'pdfjs-dist';
+import { loadPdfjs } from '@/utils/loadPdfjs';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import * as XLSX from 'xlsx';
 import PptxGenJS from 'pptxgenjs';
 import JSZip from 'jszip';
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
 
 export const convertImageToPdf = async (files) => {
     try {
@@ -44,6 +42,7 @@ export const convertImageToPdf = async (files) => {
 
 export const convertPdfToImages = async (file) => {
     try {
+        const pdfjsLib = await loadPdfjs();
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const totalPages = pdf.numPages;
@@ -99,6 +98,7 @@ export const convertWordToPdf = async (file) => {
 
 export const convertPdfToWord = async (file) => {
     try {
+        const pdfjsLib = await loadPdfjs();
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const totalPages = pdf.numPages;
@@ -233,6 +233,7 @@ export const convertExcelToPdf = async (file) => {
 export const convertPdfToExcel = async (file, options = {}) => {
     try {
         const { useOcr = false } = options;
+        const pdfjsLib = await loadPdfjs();
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const totalPages = pdf.numPages;
@@ -386,6 +387,7 @@ export const convertPdfToExcel = async (file, options = {}) => {
 
 export const convertPdfToPpt = async (file) => {
     try {
+        const pdfjsLib = await loadPdfjs();
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const totalPages = pdf.numPages;

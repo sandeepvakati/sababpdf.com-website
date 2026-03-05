@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FileBadge, ArrowRight, Download, Loader2, Trash2, Undo, MousePointer } from 'lucide-react';
 import ToolPageContent from '@/components/ToolPageContent';
 import { applyRedactions } from '@/utils/conversionUtils';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { loadPdfjs } from '@/utils/loadPdfjs';
 
 const redactPdfContent = {
     howToUse: [
@@ -43,11 +43,6 @@ const redactPdfContent = {
     ],
 };
 
-// Configure PDF.js worker
-if (typeof window !== 'undefined' && 'Worker' in window) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-}
-
 const RedactPdf = () => {
     const [file, setFile] = useState(null);
     const [isConverting, setIsConverting] = useState(false);
@@ -68,6 +63,8 @@ const RedactPdf = () => {
         if (file) {
             const loadPdf = async () => {
                 try {
+                    const pdfjsLib = await loadPdfjs();
+                    if (!pdfjsLib) return;
                     const arrayBuffer = await file.arrayBuffer();
                     const uint8Array = new Uint8Array(arrayBuffer);
                     let pdf;
