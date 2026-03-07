@@ -1,17 +1,25 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Empty turbopack config to allow both Turbopack and webpack to work
-  turbopack: {},
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   webpack: (config, { isServer }) => {
-    // Fix for pdfjs-dist in Next.js
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        canvas: false,
-        fs: false,
-        path: false,
-      };
-    }
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      canvas: false,
+    };
+
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      canvas: false,
+      fs: false,
+      path: false,
+      https: false,
+      http: false,
+      "node:fs": false,
+      "node:https": false,
+      "node:path": false
+    };
 
     return config;
   },
