@@ -8,8 +8,11 @@ export async function GET() {
         timestamp: new Date().toISOString(),
         endpoints: {
             health: 'GET /api/health',
+            contact: 'POST /api/contact',
             convertPptx: 'POST /api/convert/pptx-to-pdf',
-            convertWord: 'POST /api/convert/word-to-pdf'
+            convertWord: 'POST /api/convert/word-to-pdf',
+            convertPdfToExcel: 'POST /api/convert/pdf-to-excel',
+            convertPdfToPptx: 'POST /api/convert/pdf-to-pptx'
         }
     });
 }

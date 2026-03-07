@@ -47,6 +47,7 @@ const ComparePdf = () => {
     const [file2, setFile2] = useState(null);
     const [pdf1, setPdf1] = useState(null);
     const [pdf2, setPdf2] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
     const [numPages, setNumPages] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [scale, setScale] = useState(1.0);
@@ -60,6 +61,7 @@ const ComparePdf = () => {
     useEffect(() => {
         const loadPdfs = async () => {
             if (file1 && file2) {
+                setIsLoading(true);
                 try {
                     const pdfjsLib = await loadPdfjs();
                     if (!pdfjsLib) return;
@@ -90,6 +92,8 @@ const ComparePdf = () => {
                 } catch (error) {
                     console.error("Error loading PDFs:", error);
                     alert("Failed to load PDF files. Make sure they are valid PDFs and not password-protected.");
+                } finally {
+                    setIsLoading(false);
                 }
             }
         };
@@ -136,6 +140,13 @@ const ComparePdf = () => {
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">Compare PDF</h1>
                     <p className="text-gray-600">Upload two PDF files to visually compare them side-by-side or using an overlay.</p>
                 </div>
+
+                {isLoading && (
+                    <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 text-center">
+                        <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
+                        <p className="text-gray-700 font-medium">Loading and rendering your PDFs...</p>
+                    </div>
+                )}
 
                 {!pdf1 || !pdf2 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto w-full">

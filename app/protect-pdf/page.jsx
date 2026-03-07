@@ -163,7 +163,14 @@ const ProtectPdf = () => {
                                         className={`flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all
                                     ${isProcessing || !password || !confirmPassword ? 'opacity-70 cursor-not-allowed' : ''}`}
                                     >
-                                        {isProcessing ? 'Protecting...' : 'Protect PDF'}
+                                        {isProcessing ? (
+                                        <span className="flex items-center gap-2">
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            Protecting...
+                                        </span>
+                                    ) : (
+                                        'Protect PDF'
+                                    )}
                                     </button>
                                 )}
                             </div>

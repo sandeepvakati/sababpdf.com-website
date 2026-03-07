@@ -157,7 +157,14 @@ const UnlockPdf = () => {
                                         className={`flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white px-10 py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all
                                     ${isProcessing || !password ? 'opacity-70 cursor-not-allowed' : ''}`}
                                     >
-                                        {isProcessing ? 'Unlocking...' : 'Unlock PDF'}
+                                        {isProcessing ? (
+                                        <span className="flex items-center gap-2">
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            Unlocking...
+                                        </span>
+                                    ) : (
+                                        'Unlock PDF'
+                                    )}
                                     </button>
                                 )}
                             </div>

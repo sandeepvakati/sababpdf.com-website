@@ -16,20 +16,35 @@ const FileUploader = ({ onFilesSelected, multiple = true, accept = '.pdf' }) => 
         setIsDragging(false);
     };
 
+    const processFiles = (files) => {
+        const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+        const validFiles = files.filter(file => {
+            if (file.size > MAX_FILE_SIZE) {
+                alert(`File "${file.name}" is too large. Maximum size is 50MB.`);
+                return false;
+            }
+            return true;
+        });
+
+        if (validFiles.length > 0) {
+            onFilesSelected(validFiles);
+        }
+    };
+
     const handleDrop = (e) => {
         e.preventDefault();
         setIsDragging(false);
 
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             const files = Array.from(e.dataTransfer.files);
-            onFilesSelected(files);
+            processFiles(files);
         }
     };
 
     const handleChange = (e) => {
         if (e.target.files && e.target.files.length > 0) {
             const files = Array.from(e.target.files);
-            onFilesSelected(files);
+            processFiles(files);
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }

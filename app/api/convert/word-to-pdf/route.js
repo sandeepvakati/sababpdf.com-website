@@ -1,48 +1,99 @@
 import { NextResponse } from 'next/server';
-import libre from 'libreoffice-convert';
-import { promisify } from 'util';
+import mammoth from 'mammoth';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
-const convertAsync = promisify(libre.convert);
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-export async function POST(req) {
+function wrapTextToWidth(text, font, fontSize, maxWidth) {
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length === 0) return [''];
+
+    const lines = [];
+    let currentLine = words[0];
+
+    for (let i = 1; i < words.length; i += 1) {
+        const nextCandidate = `${currentLine} ${words[i]}`;
+        if (font.widthOfTextAtSize(nextCandidate, fontSize) <= maxWidth) {
+            currentLine = nextCandidate;
+        } else {
+            lines.push(currentLine);
+            currentLine = words[i];
+        }
+    }
+
+    lines.push(currentLine);
+    return lines;
+}
+
+export async function POST(request) {
     try {
-        const formData = await req.formData();
+        const formData = await request.formData();
         const file = formData.get('file');
 
         if (!file) {
-            return NextResponse.json(
-                { error: 'No file uploaded' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
-        // Convert File to Buffer
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const { value: extractedText } = await mammoth.extractRawText({ buffer });
+        const normalizedText = (extractedText || '').replace(/\r\n/g, '\n').trim();
 
-        console.log(`[${new Date().toISOString()}] Converting file: ${file.name}`);
-        const startTime = Date.now();
+        if (!normalizedText) {
+            return NextResponse.json({ error: 'Could not parse Word document' }, { status: 422 });
+        }
 
-        // Convert Word to PDF using LibreOffice
-        const pdfBuf = await convertAsync(buffer, '.pdf', undefined);
+        const pdfDoc = await PDFDocument.create();
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-        const duration = Date.now() - startTime;
-        console.log(`[${new Date().toISOString()}] Conversion completed in ${duration}ms`);
+        const pageWidth = 595.28;
+        const pageHeight = 841.89;
+        const marginX = 50;
+        const marginTop = 50;
+        const marginBottom = 50;
+        const fontSize = 11;
+        const lineHeight = 16;
+        const maxWidth = pageWidth - marginX * 2;
 
-        // Return the PDF buffer
-        return new NextResponse(pdfBuf, {
+        let page = pdfDoc.addPage([pageWidth, pageHeight]);
+        let y = pageHeight - marginTop;
+
+        const lines = normalizedText.split('\n');
+        for (const sourceLine of lines) {
+            const sanitizedLine = sourceLine.replace(/\t/g, '    ').trimEnd();
+            const wrappedLines = sanitizedLine
+                ? wrapTextToWidth(sanitizedLine, font, fontSize, maxWidth)
+                : [''];
+
+            for (const line of wrappedLines) {
+                if (y < marginBottom) {
+                    page = pdfDoc.addPage([pageWidth, pageHeight]);
+                    y = pageHeight - marginTop;
+                }
+                page.drawText(line, {
+                    x: marginX,
+                    y,
+                    size: fontSize,
+                    font,
+                    color: rgb(0, 0, 0),
+                });
+                y -= lineHeight;
+            }
+        }
+
+        const pdfBytes = await pdfDoc.save();
+        const pdfBuffer = Buffer.from(pdfBytes);
+
+        return new NextResponse(pdfBuffer, {
             status: 200,
             headers: {
                 'Content-Type': 'application/pdf',
-                'Content-Disposition': `attachment; filename="${file.name.replace(/\.[^/.]+$/, ".pdf")}"`,
+                'Content-Disposition': 'attachment; filename="converted.pdf"',
+                'Content-Length': pdfBuffer.length.toString(),
             },
         });
-
     } catch (error) {
-        console.error('Conversion error:', error);
-        return NextResponse.json(
-            { error: 'Conversion failed', details: error.message },
-            { status: 500 }
-        );
+        console.error('[word-to-pdf] Error:', error);
+        return NextResponse.json({ error: `Conversion failed: ${error.message}` }, { status: 500 });
     }
 }

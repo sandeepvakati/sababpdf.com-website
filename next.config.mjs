@@ -7,6 +7,14 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       canvas: false,
+      fs: false,
+      path: false,
+      http: false,
+      https: false,
+      "node:fs": false,
+      "node:path": false,
+      "node:http": false,
+      "node:https": false,
     };
 
     config.resolve.fallback = {
@@ -14,9 +22,10 @@ const nextConfig = {
       canvas: false,
       fs: false,
       path: false,
-      https: false,
       http: false,
+      https: false,
       "node:fs": false,
+      "node:http": false,
       "node:https": false,
       "node:path": false
     };

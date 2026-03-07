@@ -147,7 +147,14 @@ const PowerPointToPdf = () => {
                                         className={`flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-10 py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all
                                     ${isProcessing ? 'opacity-70 cursor-not-allowed' : ''}`}
                                     >
-                                        {isProcessing ? 'Converting...' : 'Convert to PDF'}
+                                        {isProcessing ? (
+                                        <span className="flex items-center gap-2">
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            Converting...
+                                        </span>
+                                    ) : (
+                                        'Convert to PDF'
+                                    )}
                                     </button>
                                 )}
                             </div>

@@ -1,10 +1,8 @@
 import { PDFDocument, degrees, rgb } from 'pdf-lib';
 import mammoth from 'mammoth';
-import html2pdf from 'html2pdf.js';
 import { loadPdfjs } from '@/utils/loadPdfjs';
-import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel } from 'docx';
 import * as XLSX from 'xlsx';
-import PptxGenJS from 'pptxgenjs';
 import JSZip from 'jszip';
 
 export const convertImageToPdf = async (files) => {
@@ -73,6 +71,91 @@ export const convertPdfToImages = async (file) => {
     }
 };
 
+const convertWordToPdfClient = async (file) => {
+    try {
+        // Read the file as ArrayBuffer
+        const arrayBuffer = await file.arrayBuffer();
+
+        // Step 1: Convert DOCX → HTML using mammoth (client-side)
+        const result = await mammoth.convertToHtml(
+            { arrayBuffer: arrayBuffer },
+            {
+                // Preserve images as inline base64
+                convertImage: mammoth.images.imgElement(function (image) {
+                    return image.read("base64").then(function (imageBuffer) {
+                        return {
+                            src: "data:" + image.contentType + ";base64," + imageBuffer
+                        };
+                    });
+                })
+            }
+        );
+
+        const htmlContent = result.value;
+
+        if (!htmlContent || htmlContent.trim().length === 0) {
+            throw new Error('Could not extract content from the Word file. The document might be empty or corrupted.');
+        }
+
+        // Step 2: Wrap HTML in a styled page
+        const fullHtml = `
+            <div style="font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.6; color: #000; padding: 10px;">
+                <style>
+                    h1, h2, h3, h4, h5, h6 { margin-top: 0.8em; margin-bottom: 0.4em; }
+                    p { margin: 0.4em 0; }
+                    table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
+                    td, th { border: 1px solid #ccc; padding: 6px 8px; }
+                    th { background-color: #f5f5f5; font-weight: bold; }
+                    img { max-width: 100%; height: auto; margin: 8px 0; }
+                    ul, ol { margin: 0.4em 0; padding-left: 1.5em; }
+                    li { margin: 0.2em 0; }
+                    blockquote { border-left: 3px solid #ccc; margin: 0.5em 0; padding: 0.5em 1em; color: #555; }
+                </style>
+                ${htmlContent}
+            </div>
+        `;
+
+        // Step 3: Create a temporary container for html2pdf
+        const container = document.createElement('div');
+        container.innerHTML = fullHtml;
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        container.style.top = '0';
+        container.style.width = '210mm'; // A4 width
+        document.body.appendChild(container);
+
+        // Step 4: Convert HTML → PDF using html2pdf.js (client-side)
+        const html2pdf = (await import('html2pdf.js')).default;
+        const pdfBlob = await html2pdf()
+            .set({
+                margin: [15, 15, 15, 15],
+                filename: file.name.replace(/\.[^/.]+$/, '.pdf'),
+                image: { type: 'jpeg', quality: 0.95 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                },
+                jsPDF: {
+                    unit: 'mm',
+                    format: 'a4',
+                    orientation: 'portrait',
+                },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+            })
+            .from(container)
+            .output('blob');
+
+        // Clean up
+        document.body.removeChild(container);
+
+        return pdfBlob;
+    } catch (error) {
+        console.error("Word to PDF conversion error:", error);
+        throw error;
+    }
+};
+
 export const convertWordToPdf = async (file) => {
     try {
         const formData = new FormData();
@@ -84,86 +167,294 @@ export const convertWordToPdf = async (file) => {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
+            const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.error || 'Failed to convert Word to PDF');
         }
 
-        const blob = await response.blob();
-        return blob;
+        return await response.blob();
     } catch (error) {
-        console.error("Word to PDF conversion error:", error);
-        throw error;
+        // Fallback to client-side conversion when API is unavailable.
+        console.warn('Word to PDF API failed, falling back to client-side conversion:', error);
+        return convertWordToPdfClient(file);
     }
 };
 
-export const convertPdfToWord = async (file) => {
+/**
+ * Helper: Convert raw pdf.js image data (ImageBitmap, canvas-compatible, or raw RGBA)
+ * into a JPEG ArrayBuffer suitable for docx ImageRun.
+ * Returns { data: ArrayBuffer, width: number, height: number } or null on failure.
+ */
+const pdfImageToJpegBuffer = async (imgData) => {
+    try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        if (imgData instanceof ImageBitmap) {
+            canvas.width = imgData.width;
+            canvas.height = imgData.height;
+            ctx.drawImage(imgData, 0, 0);
+        } else if (imgData.bitmap) {
+            // Some pdf.js versions wrap in { bitmap: ImageBitmap }
+            canvas.width = imgData.bitmap.width;
+            canvas.height = imgData.bitmap.height;
+            ctx.drawImage(imgData.bitmap, 0, 0);
+        } else if (imgData.data && imgData.width && imgData.height) {
+            // Raw pixel data (Uint8ClampedArray with RGBA)
+            canvas.width = imgData.width;
+            canvas.height = imgData.height;
+            const imageDataObj = new ImageData(
+                new Uint8ClampedArray(imgData.data),
+                imgData.width,
+                imgData.height
+            );
+            ctx.putImageData(imageDataObj, 0, 0);
+        } else if (imgData.src || imgData instanceof HTMLImageElement) {
+            // Image element
+            const img = imgData.src ? imgData : imgData;
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            ctx.drawImage(img, 0, 0);
+        } else {
+            return null;
+        }
+
+        // Skip very small images (likely artifacts, not real content images)
+        if (canvas.width < 10 || canvas.height < 10) return null;
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+        if (!blob) return null;
+        const ab = await blob.arrayBuffer();
+        return { data: ab, width: canvas.width, height: canvas.height };
+    } catch (e) {
+        console.warn('pdfImageToJpegBuffer failed:', e);
+        return null;
+    }
+};
+
+export const convertPdfToWord = async (file, onProgress) => {
     try {
         const pdfjsLib = await loadPdfjs();
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const totalPages = pdf.numPages;
+        const OPS = pdfjsLib.OPS;
 
         const children = [];
 
         for (let i = 1; i <= totalPages; i++) {
+            if (onProgress) onProgress(i, totalPages);
+
             const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
+            const viewport = page.getViewport({ scale: 1.0 });
+            const pageHeight = viewport.height;
+            const pageWidth = viewport.width;
 
-            let lastY = null;
-            let currentLineText = [];
+            // ====================================================================
+            // 1. Extract individual embedded images via the operator list
+            // ====================================================================
+            const extractedImages = []; // { yPos, jpegResult }
 
-            textContent.items.forEach((item) => {
-                if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) {
-                    if (currentLineText.length > 0) {
-                        children.push(new Paragraph({
-                            children: [new TextRun(currentLineText.join(' '))]
-                        }));
-                        currentLineText = [];
+            try {
+                const ops = await page.getOperatorList();
+
+                // Collect unique image names from paint operations
+                const imageNames = new Set();
+                for (let opIdx = 0; opIdx < ops.fnArray.length; opIdx++) {
+                    const fn = ops.fnArray[opIdx];
+                    if (
+                        fn === OPS.paintImageXObject ||
+                        fn === OPS.paintJpegImageXObject
+                    ) {
+                        const imgName = ops.argsArray[opIdx][0];
+                        if (imgName && !imageNames.has(imgName)) {
+                            imageNames.add(imgName);
+
+                            // Try to derive a rough Y position from the transform matrix
+                            // Walk backwards to find the most recent "transform" op
+                            let yPos = pageHeight / 2; // default to middle
+                            for (let t = opIdx - 1; t >= 0; t--) {
+                                if (ops.fnArray[t] === OPS.transform) {
+                                    const matrix = ops.argsArray[t];
+                                    // matrix = [a, b, c, d, e, f] — f is the Y translation
+                                    if (matrix && matrix.length >= 6) {
+                                        yPos = matrix[5];
+                                    }
+                                    break;
+                                }
+                            }
+
+                            try {
+                                const imgData = await new Promise((resolve, reject) => {
+                                    try {
+                                        page.objs.get(imgName, (data) => {
+                                            resolve(data);
+                                        });
+                                        // Timeout fallback — some images may never resolve
+                                        setTimeout(() => reject(new Error('timeout')), 3000);
+                                    } catch (e) {
+                                        reject(e);
+                                    }
+                                });
+
+                                if (imgData) {
+                                    const jpegResult = await pdfImageToJpegBuffer(imgData);
+                                    if (jpegResult) {
+                                        extractedImages.push({ yPos, jpegResult });
+                                    }
+                                }
+                            } catch (imgErr) {
+                                // Silently skip images that can't be extracted
+                                console.warn(`Could not extract image "${imgName}" on page ${i}:`, imgErr.message);
+                            }
+                        }
                     }
                 }
-                currentLineText.push(item.str);
-                lastY = item.transform[5];
-            });
+            } catch (opsErr) {
+                console.warn(`Could not get operator list for page ${i}:`, opsErr);
+            }
 
-            if (currentLineText.length > 0) {
+            // ====================================================================
+            // 2. Extract text content with Y-positions
+            // ====================================================================
+            const textLines = []; // { yPos, text }
+            try {
+                const textContent = await page.getTextContent();
+                let lastY = null;
+                let currentLineText = [];
+                let currentLineY = 0;
+
+                textContent.items.forEach((item) => {
+                    const itemY = item.transform[5];
+                    if (lastY !== null && Math.abs(itemY - lastY) > 5) {
+                        if (currentLineText.length > 0) {
+                            const lineStr = currentLineText.join(' ').trim();
+                            if (lineStr) {
+                                textLines.push({ yPos: currentLineY, text: lineStr });
+                            }
+                            currentLineText = [];
+                        }
+                        currentLineY = itemY;
+                    }
+                    if (currentLineText.length === 0) currentLineY = itemY;
+                    currentLineText.push(item.str);
+                    lastY = itemY;
+                });
+
+                if (currentLineText.length > 0) {
+                    const lineStr = currentLineText.join(' ').trim();
+                    if (lineStr) {
+                        textLines.push({ yPos: currentLineY, text: lineStr });
+                    }
+                }
+            } catch (textErr) {
+                console.warn(`Could not extract text for page ${i}:`, textErr);
+            }
+
+            // ====================================================================
+            // 3. Decide strategy: interleave or fallback
+            // ====================================================================
+            const hasImages = extractedImages.length > 0;
+            const hasText = textLines.length > 0;
+
+            // Add page header
+            children.push(new Paragraph({
+                children: [new TextRun({ text: `— Page ${i} —`, bold: true, size: 20, color: '888888' })],
+                spacing: { before: i === 1 ? 0 : 400, after: 200 },
+            }));
+
+            if (hasImages || hasText) {
+                // Build a combined list sorted by Y position (top of page = high Y in PDF coords)
+                const elements = [];
+
+                textLines.forEach(tl => {
+                    elements.push({ type: 'text', yPos: tl.yPos, text: tl.text });
+                });
+
+                extractedImages.forEach(img => {
+                    elements.push({ type: 'image', yPos: img.yPos, jpegResult: img.jpegResult });
+                });
+
+                // Sort top-to-bottom (PDF Y axis: higher = top of page)
+                elements.sort((a, b) => b.yPos - a.yPos);
+
+                // Build docx paragraphs
+                for (const el of elements) {
+                    if (el.type === 'text') {
+                        children.push(new Paragraph({
+                            children: [new TextRun({ text: el.text, size: 22 })],
+                            spacing: { after: 80 },
+                        }));
+                    } else if (el.type === 'image') {
+                        const jr = el.jpegResult;
+                        // Scale image to fit Word page width (max ~470pt usable on A4)
+                        const maxWidthPt = 470;
+                        let imgW = jr.width;
+                        let imgH = jr.height;
+                        if (imgW > maxWidthPt) {
+                            const ratio = maxWidthPt / imgW;
+                            imgW = maxWidthPt;
+                            imgH = imgH * ratio;
+                        }
+
+                        children.push(new Paragraph({
+                            children: [
+                                new ImageRun({
+                                    data: jr.data,
+                                    transformation: {
+                                        width: imgW,
+                                        height: imgH,
+                                    },
+                                    type: 'jpg',
+                                }),
+                            ],
+                            spacing: { before: 100, after: 100 },
+                        }));
+                    }
+                }
+            }
+
+            // FALLBACK: If no individual images were extracted AND text is minimal,
+            // render the whole page as an image (for scanned PDFs, etc.)
+            if (!hasImages && textLines.length < 3) {
+                const scale = 2.0;
+                const fbViewport = page.getViewport({ scale });
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = fbViewport.width;
+                canvas.height = fbViewport.height;
+                await page.render({ canvasContext: context, viewport: fbViewport }).promise;
+
+                const imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+                const imageArrayBuffer = await imageBlob.arrayBuffer();
+
+                const maxWidthPt = 470;
+                const aspectRatio = fbViewport.height / fbViewport.width;
+
                 children.push(new Paragraph({
-                    children: [new TextRun(currentLineText.join(' '))]
+                    children: [
+                        new ImageRun({
+                            data: imageArrayBuffer,
+                            transformation: {
+                                width: maxWidthPt,
+                                height: maxWidthPt * aspectRatio,
+                            },
+                            type: 'jpg',
+                        }),
+                    ],
+                }));
+            }
+
+            // Page break between pages (except the last)
+            if (i < totalPages) {
+                children.push(new Paragraph({
+                    children: [],
+                    pageBreakBefore: true,
                 }));
             }
         }
 
         if (children.length === 0) {
-            console.log("No text found in PDF, attempting OCR...");
-
-            const { createWorker } = await import('tesseract.js');
-            const worker = await createWorker('eng');
-
-            for (let i = 1; i <= totalPages; i++) {
-                const page = await pdf.getPage(i);
-                const viewport = page.getViewport({ scale: 2.0 });
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-                const imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
-
-                const { data: { paragraphs } } = await worker.recognize(imageBlob);
-
-                paragraphs.forEach(p => {
-                    children.push(new Paragraph({
-                        children: [new TextRun(p.text)]
-                    }));
-                });
-                children.push(new Paragraph({ text: "" }));
-            }
-
-            await worker.terminate();
-        }
-
-        if (children.length === 0) {
-            throw new Error("No text found in PDF even with OCR. The file might be empty or unreadable.");
+            throw new Error("No content found in PDF. The file might be empty or unreadable.");
         }
 
         const doc = new Document({
@@ -230,7 +521,7 @@ export const convertExcelToPdf = async (file) => {
     });
 };
 
-export const convertPdfToExcel = async (file, options = {}) => {
+const convertPdfToExcelClient = async (file, options = {}) => {
     try {
         const { useOcr = false } = options;
         const pdfjsLib = await loadPdfjs();
@@ -385,38 +676,51 @@ export const convertPdfToExcel = async (file, options = {}) => {
     }
 };
 
-export const convertPdfToPpt = async (file) => {
+export const convertPdfToExcel = async (file, options = {}) => {
+    const { useOcr = false } = options;
+
+    // OCR mode is client-side only.
+    if (useOcr) {
+        return convertPdfToExcelClient(file, { useOcr: true });
+    }
+
     try {
-        const pdfjsLib = await loadPdfjs();
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        const totalPages = pdf.numPages;
+        const formData = new FormData();
+        formData.append('file', file);
 
-        const pres = new PptxGenJS();
+        const response = await fetch('/api/convert/pdf-to-excel', {
+            method: 'POST',
+            body: formData,
+        });
 
-        for (let i = 1; i <= totalPages; i++) {
-            const page = await pdf.getPage(i);
-            const viewport = page.getViewport({ scale: 2.0 });
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-
-            await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-
-            const slide = pres.addSlide();
-            slide.addImage({ data: dataUrl, x: 0, y: 0, w: '100%', h: '100%' });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Failed to convert PDF to Excel');
         }
 
-        const blob = await pres.write({ outputType: 'blob' });
-        return blob;
-
+        return await response.blob();
     } catch (error) {
-        console.error("PDF to PowerPoint conversion error:", error);
-        throw error;
+        // Fallback to client-side extraction when API is unavailable.
+        console.warn('PDF to Excel API failed, falling back to client-side conversion:', error);
+        return convertPdfToExcelClient(file, { useOcr: false });
     }
+};
+
+export const convertPdfToPpt = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/convert/pdf-to-pptx', {
+        method: 'POST',
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to convert PDF to PowerPoint');
+    }
+
+    return await response.blob();
 };
 
 export const rotatePdf = async (file, rotation) => {

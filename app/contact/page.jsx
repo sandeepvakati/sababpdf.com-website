@@ -24,26 +24,31 @@ const Contact = () => {
         setIsSubmitting(true);
         setStatus({ type: '', message: '' });
 
-        // For now, we'll use mailto as a simple solution
-        // You can replace this with a backend API later
-        const mailtoLink = `mailto:sababpdf@gmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(
-            `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`
-        )}`;
+        try {
+            const response = await fetch('/api/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            });
 
-        window.location.href = mailtoLink;
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to send message. Please try again.');
+            }
 
-        setStatus({
-            type: 'success',
-            message: 'Your email client will open. Please send the email to complete your message.'
-        });
-
-        setIsSubmitting(false);
-
-        // Reset form
-        setTimeout(() => {
+            setStatus({
+                type: 'success',
+                message: 'Message sent successfully. We usually respond within 24-48 hours.',
+            });
             setFormData({ name: '', email: '', subject: '', message: '' });
-            setStatus({ type: '', message: '' });
-        }, 3000);
+        } catch (error) {
+            setStatus({
+                type: 'error',
+                message: error.message || 'Unable to send your message right now.',
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -190,6 +195,11 @@ const Contact = () => {
                                     </a>
                                 </div>
                             </div>
+                        </div>
+
+                        <div className="bg-white rounded-2xl shadow-xl p-8">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Region</h3>
+                            <p className="text-gray-600">India (serving users worldwide).</p>
                         </div>
 
                         {/* FAQ Card */}

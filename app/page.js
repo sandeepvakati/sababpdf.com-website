@@ -5,6 +5,8 @@ import {
   FileImage, Presentation, RotateCw, Hash, Stamp, Lock, Unlock,
   FileBadge, Crop, ArrowRightLeft, Wrench, Globe, PenTool
 } from 'lucide-react';
+import React from 'react';
+import AdBanner from '@/components/AdBanner';
 
 const tools = [
   {
@@ -179,13 +181,20 @@ export default function Home() {
             Every tool you need to work with PDFs in one place
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto font-light">
-            Every tool you need to use PDFs, at your fingertips. All are 100% FREE and easy to use! Merge, split, compress, convert, rotate, unlock and watermark PDFs with just a few clicks.
+            100% free, no sign-up required. Process files privately in your browser.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-          {tools.map((tool) => (
-            <FeatureCard key={tool.title} {...tool} />
+          {tools.map((tool, index) => (
+            <React.Fragment key={tool.title}>
+              <FeatureCard {...tool} />
+              {index === 9 && (
+                <div className="col-span-full my-4">
+                  <AdBanner slot="YOUR_AD_SLOT_ID" format="horizontal" />
+                </div>
+              )}
+            </React.Fragment>
           ))}
         </div>
       </div>

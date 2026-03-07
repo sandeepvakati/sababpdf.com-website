@@ -1,60 +1,18 @@
-/**
- * CDN-based PDF.js loader — bypasses webpack/Next.js bundling entirely.
- * All pages and utilities should use this instead of `import * as pdfjsLib from 'pdfjs-dist'`.
- */
+let pdfjsLib = null;
 
-const PDFJS_VERSION = '4.2.67';
-const CDN_BASE = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}`;
-
-let pdfjsLoadPromise = null;
-
-/**
- * Load PDF.js from CDN. Returns the pdfjsLib global.
- * Safe to call multiple times — only loads once.
- */
-export function loadPdfjs() {
+export async function loadPdfjs() {
     if (typeof window === 'undefined') {
-        return Promise.resolve(null);
+        return null;
     }
 
-    // Already loaded
-    if (window.pdfjsLib) {
-        return Promise.resolve(window.pdfjsLib);
+    if (pdfjsLib) return pdfjsLib;
+
+    try {
+        const pdfjs = await import('pdfjs-dist');
+        pdfjsLib = pdfjs.default || pdfjs;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+        return pdfjsLib;
+    } catch (error) {
+        throw new Error('Failed to load PDF.js: ' + error.message);
     }
-
-    // Loading in progress
-    if (pdfjsLoadPromise) {
-        return pdfjsLoadPromise;
-    }
-
-    pdfjsLoadPromise = new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = `${CDN_BASE}/pdf.min.mjs`;
-        script.type = 'module';
-
-        // pdf.min.mjs (ES module) sets window.pdfjsLib on some builds, but the
-        // classic UMD build is more reliable for global access.
-        // Use the classic (non-module) build instead:
-        script.src = `${CDN_BASE}/pdf.min.js`;
-        script.type = 'text/javascript';
-
-        script.onload = () => {
-            const lib = window.pdfjsLib;
-            if (!lib) {
-                reject(new Error('pdfjsLib not found on window after script load'));
-                return;
-            }
-            lib.GlobalWorkerOptions.workerSrc = `${CDN_BASE}/pdf.worker.min.js`;
-            resolve(lib);
-        };
-
-        script.onerror = () => {
-            pdfjsLoadPromise = null;
-            reject(new Error('Failed to load PDF.js from CDN'));
-        };
-
-        document.head.appendChild(script);
-    });
-
-    return pdfjsLoadPromise;
 }

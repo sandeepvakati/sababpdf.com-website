@@ -1,11 +1,10 @@
-import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import Providers from "../components/Providers";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-
-const inter = Inter({ subsets: ["latin"] });
+import CookieConsent from "../components/CookieConsent";
+import ErrorBoundary from "../components/ErrorBoundary";
 
 export const metadata = {
   title: "SababPDF - Every tool you need to work with PDFs in one place",
@@ -18,8 +17,8 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <Script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1647209378622119" crossOrigin="anonymous" strategy="lazyOnload" />
+      <body className="font-sans">
+        <CookieConsent />
 
         {/* Structured Data */}
         <script
@@ -42,11 +41,18 @@ export default function RootLayout({ children }) {
           <div className="flex flex-col min-h-screen">
             <Navbar />
             <main className="flex-grow">
-              {children}
+              <ErrorBoundary>{children}</ErrorBoundary>
             </main>
             <Footer />
           </div>
         </Providers>
+        {/* AdSense — keep at bottom of body */}
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1647209378622119"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

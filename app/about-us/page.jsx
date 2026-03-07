@@ -62,6 +62,9 @@ const AboutUs = () => {
                             forced account creation, limited free usage, or — worst of all — uploaded our sensitive documents to unknown servers.
                         </p>
                         <p>
+                            The site is built and maintained by an independent product team based in India, focused on practical document tools that stay simple and privacy-conscious.
+                        </p>
+                        <p>
                             We asked ourselves: <em>Why can't there be a PDF tool that just works — instantly, for free, and without
                                 compromising privacy?</em> So we built one.
                         </p>
