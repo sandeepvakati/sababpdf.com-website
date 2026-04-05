@@ -1,0 +1,51 @@
+# ============================================================
+# PDF to Word Converter - High Quality Dependencies
+# For iLovePDF-quality conversion results
+# ============================================================
+# Install all packages:
+#   pip install -r requirements.txt
+# ============================================================
+
+# --- CORE DEPENDENCIES (REQUIRED) ---
+# High-quality PDF rendering and text extraction
+pymupdf>=1.23.8
+
+# Word document creation
+python-docx>=0.8.11
+
+# Best-quality editable PDF conversion (optional but recommended)
+pdf2docx>=0.5.12
+
+# --- IMAGE PROCESSING (REQUIRED) ---
+# Image handling for PDF rendering
+Pillow>=10.0.0
+
+# --- TABLE EXTRACTION (REQUIRED FOR IMPROVED TABLES) ---
+# High-quality table detection and extraction
+pdfplumber>=0.10.3
+
+# --- OCR SUPPORT (OPTIONAL - for scanned PDFs) ---
+# OCR text recognition (requires Tesseract OCR installed on system)
+# pytesseract>=0.3.10
+# pdf2image>=1.16.3
+
+# --- ADVANCED IMAGE PROCESSING (OPTIONAL) ---
+# opencv-python>=4.8.0
+# numpy>=1.24.0
+
+# ============================================================
+# QUICK INSTALL COMMANDS:
+# ============================================================
+# Minimum (basic conversion):
+#   pip install pymupdf python-docx Pillow
+#
+# Recommended (best quality with tables & formulas):
+#   pip install pymupdf python-docx pdf2docx Pillow pdfplumber
+#
+# Full (includes OCR for scanned PDFs):
+#   pip install -r requirements.txt
+#
+# ON WINDOWS (your system):
+#   cd backend
+#   pip install -r requirements.txt
+# ============================================================

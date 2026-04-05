@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+
+# Next.js build
+.next/
+.next-dev/
+out/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+next-dev-output.log
+.next-start.log
+.next-start.err.log
+
+# Test output files
+*.docx
+test_*.pdf
+test_*.py
+verify_installation.py
+
+# IDE
+.vscode/
+.idea/
+
+# AI tools
+.qwen/
+.gemini/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Misc generated docs (from AI tools)
+*.md
+!README.md
+
+# Build scripts that are local-only
+run-dev.cmd
+test_system.cmd
+QUICK_START.cmd
+QUICK_START.sh
+
+# AI-generated summary/status files
+COMPLETION_SUMMARY.txt
+ERROR_ANALYSIS.txt
+ERROR_FIXED.txt
+EVERYTHING_READY.txt
+INSTALLATION_VERIFIED.txt
+PREVIEW_FEATURE_READY.txt
+QUICK_FIX_START.txt
+QUICK_START.txt
+START_HERE.txt
+SUMMARY.txt
