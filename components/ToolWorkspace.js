@@ -948,7 +948,7 @@ export default function ToolWorkspace({ tool }) {
       formData.append('mode', pdfToWordMode);
     }
 
-    const endpoint = LOCAL_API_TOOLS.has(tool.id) ? `/api/convert/${tool.id}` : `${API_BASE_URL}/api/convert/${tool.id}`;
+    const endpoint = `/api/convert/${tool.id}`;
     let response;
 
     try {
@@ -961,7 +961,7 @@ export default function ToolWorkspace({ tool }) {
         throw new Error('Could not reach the built-in PDF to Word converter. Restart the app server and try again.');
       }
 
-      throw new Error(`Could not reach the conversion server at ${API_BASE_URL}. Start the backend service and try again.`);
+      throw new Error(`Could not access the conversion API. Please ensure the backend server is running.`);
     }
 
     if (!response.ok) {
