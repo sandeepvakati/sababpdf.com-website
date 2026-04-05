@@ -1281,7 +1281,7 @@ export default function ToolWorkspace({ tool }) {
           : pdfToWordMode === 'ocr'
             ? 'OCR mode is for scanned PDFs with non-selectable text. It needs OCR support on the server and may take longer.'
             : 'No OCR mode is for PDFs that already contain selectable text. It now uses a stronger editable converter first and a faster small-file profile when possible.'
-        : `Server-side conversion uses ${API_BASE_URL}.`;
+        : `Secure server-side processing running.`;
 
   return (
     <div className="tool-workspace">
