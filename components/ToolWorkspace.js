@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import JSZip from 'jszip';
 import FileUploader, { FileList, SinglePdfPreviewCard } from './FileUploader';
 import PdfToWordPreview from './PdfToWordPreview';
+import SignaturePadModal from './SignaturePadModal';
+import PdfCanvasInteractor from './PdfCanvasInteractor';
 import {
   addPageNumbers,
   addWatermark,
@@ -21,6 +23,11 @@ import {
   splitPDF,
   splitPDFAllPages,
   svgToJpg,
+  protectPDF,
+  unlockPDF,
+  signPDF,
+  editPDF,
+  redactPDF,
 } from '../lib/pdfUtils';
 
 const SUPPORTED_API_TOOLS = [
@@ -44,6 +51,12 @@ const CLIENT_TOOLS = new Set([
   'pdf-to-jpg',
   'watermark-pdf',
   'add-page-numbers',
+  'protect-pdf',
+  'unlock-pdf',
+  'sign-pdf',
+  'scan-to-pdf',
+  'edit-pdf',
+  'redact-pdf',
 ]);
 
 const DOWNLOAD_BUTTON_TOOLS = new Set([
@@ -221,6 +234,28 @@ function getUploadConfig(toolId) {
         multiple: false,
         label: 'Drop a PowerPoint file here',
         description: 'Upload one PPT or PPTX file to convert slides into PDF.',
+      };
+    case 'compare-pdf':
+      return {
+        multiple: true,
+        label: 'Drop two PDF files here',
+        description: 'Upload the original and the modified PDF to compare them.',
+      };
+    case 'protect-pdf':
+    case 'unlock-pdf':
+    case 'sign-pdf':
+    case 'redact-pdf':
+      return {
+        multiple: false,
+        label: 'Drop a PDF file here',
+        description: 'Upload one PDF file to secure, sign, or redact.',
+      };
+    case 'scan-to-pdf':
+      return {
+        multiple: true,
+        label: 'Drop images here',
+        description: 'Upload photos or use your camera to scan documents to PDF.',
+        capture: 'environment', // Triggers camera on mobile
       };
     case 'html-to-pdf':
       return {
@@ -417,10 +452,17 @@ export default function ToolWorkspace({ tool }) {
   const [compressTargetValue, setCompressTargetValue] = useState('');
   const [compressTargetUnit, setCompressTargetUnit] = useState('mb');
   const [pdfToWordMode, setPdfToWordMode] = useState('no-ocr');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const [signatureModalOpen, setSignatureModalOpen] = useState(false);
+  const [signatureData, setSignatureData] = useState(null);
   const [splitPreviewOpen, setSplitPreviewOpen] = useState(false);
   const [splitPreviewItems, setSplitPreviewItems] = useState([]);
   const [splitPreviewLoading, setSplitPreviewLoading] = useState(false);
   const [splitPreviewError, setSplitPreviewError] = useState('');
+  
+  const canvasItemsRef = useRef([]);
   const [reorderPreviewItems, setReorderPreviewItems] = useState([]);
   const [reorderPreviewLoading, setReorderPreviewLoading] = useState(false);
   const [reorderPreviewError, setReorderPreviewError] = useState('');
@@ -938,14 +980,31 @@ export default function ToolWorkspace({ tool }) {
   }, [busy, files.length, messageTone, tool.id, tool.title, uploadConfig.multiple]);
 
   async function runBackendTool() {
-    if (!files.length) {
-      throw new Error('Upload a file first.');
+    if (!files.length && !(tool.id === 'html-to-pdf' && urlInput)) {
+      throw new Error('Upload a file first or provide a URL.');
     }
 
     const formData = new FormData();
-    formData.append('file', files[0]);
+    if (files.length) {
+      formData.append('file', files[0]);
+    }
+    
     if (tool.id === 'pdf-to-word') {
       formData.append('mode', pdfToWordMode);
+    }
+    if (tool.id === 'protect-pdf' || tool.id === 'unlock-pdf') {
+      formData.append('password', passwordInput);
+    }
+    if (tool.id === 'html-to-pdf' && urlInput) {
+      formData.append('url', urlInput);
+    }
+    if (tool.id === 'watermark-pdf') {
+      formData.append('watermarkText', watermarkText);
+    }
+    if (tool.id === 'add-page-numbers') {
+      formData.append('position', pagePosition);
+      formData.append('prefix', prefix);
+      formData.append('suffix', suffix);
     }
 
     const endpoint = `/api/convert/${tool.id}`;
@@ -1078,6 +1137,88 @@ export default function ToolWorkspace({ tool }) {
         };
       }
 
+      case 'protect-pdf': {
+        if (!passwordInput) throw new Error('Please enter a password.');
+        const result = await protectPDF(files[0], passwordInput);
+        return {
+          message: 'Protection completed. Download the protected PDF.',
+          download: {
+            blob: result.blob,
+            filename: result.filename,
+            label: 'Download protected PDF',
+            title: 'Protected PDF ready',
+            description: 'Your file has been secured with the password.',
+          },
+        };
+      }
+
+      case 'unlock-pdf': {
+        if (!passwordInput) throw new Error('Please enter the password to unlock.');
+        const result = await unlockPDF(files[0], passwordInput);
+        return {
+          message: 'Unlock completed. Download the unlocked PDF.',
+          download: {
+            blob: result.blob,
+            filename: result.filename,
+            label: 'Download unlocked PDF',
+            title: 'Unlocked PDF ready',
+            description: 'The password has been removed from your file.',
+          },
+        };
+      }
+
+      case 'sign-pdf': {
+        if (!signatureData) {
+          setSignatureModalOpen(true);
+          throw new Error('Please draw your signature first.');
+        }
+        const result = await signPDF(files[0], signatureData);
+        return {
+          message: 'Signature applied successfully!',
+          download: {
+            blob: result.blob,
+            filename: result.filename,
+            label: 'Download signed PDF',
+            title: 'Signed PDF ready',
+            description: 'Your document has been securely stamped with your signature.',
+          },
+        };
+      }
+
+      case 'edit-pdf': {
+        if (!canvasItemsRef.current || canvasItemsRef.current.length === 0) {
+          throw new Error('Please add at least one edit on the canvas.');
+        }
+        const result = await editPDF(files[0], canvasItemsRef.current);
+        return {
+          message: 'Edits applied successfully. Download your updated PDF.',
+          download: {
+            blob: result.blob,
+            filename: result.filename,
+            label: 'Download Edited PDF',
+            title: 'Edited PDF ready',
+            description: 'Your document has been updated with the new text.',
+          },
+        };
+      }
+
+      case 'redact-pdf': {
+        if (!canvasItemsRef.current || canvasItemsRef.current.length === 0) {
+          throw new Error('Please draw at least one redaction box on the canvas.');
+        }
+        const result = await redactPDF(files[0], canvasItemsRef.current);
+        return {
+          message: 'Redaction applied successfully. Download your secure PDF.',
+          download: {
+            blob: result.blob,
+            filename: result.filename,
+            label: 'Download Redacted PDF',
+            title: 'Redacted PDF ready',
+            description: 'Sensitive information has been blacked out permanently.',
+          },
+        };
+      }
+
       case 'compress-pdf': {
         const blob = await compressPDF(files[0], {
           strength: compressStrength,
@@ -1156,6 +1297,20 @@ export default function ToolWorkspace({ tool }) {
             label: 'Download PDF',
             title: 'PDF ready',
             description: 'Your images have been combined into one PDF. Download it when you are ready.',
+          },
+        };
+      }
+
+      case 'scan-to-pdf': {
+        const blob = await imagesToPDF(files);
+        return {
+          message: 'Scanned document PDF created. Download it when you are ready.',
+          download: {
+            blob,
+            filename: 'scanned-document.pdf',
+            label: 'Download Scanned PDF',
+            title: 'Scanned PDF ready',
+            description: 'Your photos have been compiled into a single PDF document.',
           },
         };
       }
@@ -1296,16 +1451,31 @@ export default function ToolWorkspace({ tool }) {
 
         {true ? (
           <>
-            <FileUploader
-              onFiles={handleFiles}
-              accept={getAcceptTypes(tool.id)}
-              multiple={uploadConfig.multiple}
-              label={uploadConfig.label}
-              description={uploadConfig.description}
-              currentCount={files.length}
-              showUploadHint={tool.id === 'merge-pdf' && files.length === 0}
-              uploadHintText="Add PDFs here"
-            />
+            {files.length === 0 || (!['edit-pdf', 'redact-pdf'].includes(tool.id)) ? (
+              <FileUploader
+                onFiles={handleFiles}
+                accept={getAcceptTypes(tool.id)}
+                multiple={uploadConfig.multiple}
+                label={uploadConfig.label}
+                description={uploadConfig.description}
+                capture={uploadConfig.capture}
+                currentCount={files.length}
+                showUploadHint={tool.id === 'merge-pdf' && files.length === 0}
+                uploadHintText="Add PDFs here"
+              />
+            ) : null}
+
+            {files[0] && (tool.id === 'edit-pdf' || tool.id === 'redact-pdf') && !pendingDownload && !busy ? (
+              <PdfCanvasInteractor
+                file={files[0]}
+                mode={tool.id === 'edit-pdf' ? 'edit' : 'redact'}
+                onComplete={(items) => {
+                  canvasItemsRef.current = items;
+                  handleProcess();
+                }}
+                onCancel={() => handleRemove(0)}
+              />
+            ) : null}
 
             {tool.id === 'split-pdf' && files[0] ? (
               <>
@@ -1462,7 +1632,7 @@ export default function ToolWorkspace({ tool }) {
                 onRemove={() => handleRemove(0)}
                 previewRotation={Number(rotation)}
               />
-            ) : (
+            ) : tool.id === 'edit-pdf' || tool.id === 'redact-pdf' ? null : (
               <FileList
                 files={files}
                 onRemove={files.length > 1 ? handleRemove : undefined}
@@ -1864,6 +2034,87 @@ export default function ToolWorkspace({ tool }) {
               </div>
             ) : null}
 
+            {['protect-pdf', 'unlock-pdf'].includes(tool.id) ? (
+              <div className="control-grid">
+                <label className="field field-wide">
+                  <span>PDF Password</span>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={passwordInput}
+                      onChange={(event) => setPasswordInput(event.target.value)}
+                      placeholder="Enter password..."
+                      style={{
+                        width: '100%',
+                        paddingRight: '40px',
+                        border: '2px solid #e2e8f0',
+                        borderRadius: '8px',
+                        transition: 'border-color 0.2s',
+                        height: '48px'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#f97316'}
+                      onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      style={{
+                        position: 'absolute',
+                        right: '12px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#64748b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '4px'
+                      }}
+                    >
+                      {showPassword ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                      )}
+                    </button>
+                  </div>
+                </label>
+              </div>
+            ) : null}
+
+            {tool.id === 'html-to-pdf' ? (
+              <div className="control-grid">
+                <label className="field field-wide">
+                  <span>Or enter a webpage URL to convert</span>
+                  <input
+                    type="url"
+                    value={urlInput}
+                    onChange={(event) => setUrlInput(event.target.value)}
+                    placeholder="https://example.com"
+                  />
+                </label>
+              </div>
+            ) : null}
+
+            {tool.id === 'sign-pdf' ? (
+              <div className="control-grid">
+                <div className="field field-wide">
+                  <span>Your Signature</span>
+                  {signatureData ? (
+                    <div style={{ border: '2px solid #e2e8f0', padding: '10px', borderRadius: '4px', textAlign: 'center', background: '#fff' }}>
+                      <img src={signatureData} alt="Signature" style={{ maxHeight: '100px' }} />
+                      <button type="button" className="secondary-button" style={{ marginTop: '10px' }} onClick={() => setSignatureModalOpen(true)}>Redraw Signature</button>
+                    </div>
+                  ) : (
+                    <button type="button" className="secondary-button" onClick={() => setSignatureModalOpen(true)}>
+                      Draw Signature
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
             {tool.id === 'add-page-numbers' ? (
               <div className="control-grid">
                 <label className="field">
@@ -1889,9 +2140,11 @@ export default function ToolWorkspace({ tool }) {
             ) : null}
 
             <div className="action-row">
-              <button type="button" className="primary-button" onClick={primaryActionHandler} disabled={busy}>
-                {primaryActionLabel}
-              </button>
+              {!(tool.id === 'edit-pdf' || tool.id === 'redact-pdf') || pendingDownload || busy ? (
+                <button type="button" className="primary-button" onClick={primaryActionHandler} disabled={busy || (files[0] && (tool.id === 'edit-pdf' || tool.id === 'redact-pdf') && !pendingDownload)}>
+                  {primaryActionLabel}
+                </button>
+              ) : null}
               <p className="helper-text">{helperCopy}</p>
             </div>
 
@@ -1955,6 +2208,16 @@ export default function ToolWorkspace({ tool }) {
               />
             ) : null}
 
+            {signatureModalOpen && (
+              <SignaturePadModal 
+                onSave={(dataUrl) => {
+                  setSignatureData(dataUrl);
+                  setSignatureModalOpen(false);
+                }} 
+                onCancel={() => setSignatureModalOpen(false)} 
+              />
+            )}
+
             <div className="workflow-guide">
               <p className="eyebrow">Process Steps</p>
               <div className="workflow-steps" aria-label="How the tool workflow works">
@@ -1974,10 +2237,9 @@ export default function ToolWorkspace({ tool }) {
           </>
         ) : (
           <div className="empty-state">
-            <h3>Feature not enabled in this build</h3>
+            <h3>Feature scheduled for next phase</h3>
             <p>
-              Password-protected PDF tools need a dedicated PDF security service. Keep them hidden in production until
-              you add a tested backend flow.
+              This complex tool is currently under active development. Keep it hidden in production until the architecture is tested and ready.
             </p>
           </div>
         )}

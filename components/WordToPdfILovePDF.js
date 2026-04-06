@@ -385,12 +385,12 @@ export default function WordToPdfILovePDF({ embedded = false }) {
 const styles = {
   container: {
     minHeight: '100vh',
-    background: '#f8f9fa',
+    background: 'var(--page-bg)',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
   },
   header: {
-    background: '#ffffff',
-    borderBottom: '1px solid #e8e8e8',
+    background: 'var(--surface-solid)',
+    borderBottom: '1px solid var(--surface-border)',
     padding: '0 40px',
     height: '70px',
     display: 'flex',
@@ -399,7 +399,7 @@ const styles = {
     position: 'sticky',
     top: 0,
     zIndex: 100,
-    boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
+    boxShadow: 'var(--card-shadow-soft)',
   },
   logoButton: {
     display: 'flex',
@@ -419,7 +419,7 @@ const styles = {
   logo: {
     fontSize: '1.6rem',
     fontWeight: '800',
-    color: '#333',
+    color: 'var(--text-heading)',
     letterSpacing: '-0.5px',
   },
   nav: {
@@ -428,7 +428,7 @@ const styles = {
     alignItems: 'center',
   },
   navLink: {
-    color: '#666',
+    color: 'var(--text-soft)',
     textDecoration: 'none',
     fontWeight: '500',
     fontSize: '0.95rem',
@@ -436,16 +436,16 @@ const styles = {
     padding: '8px 0',
   },
   hero: {
-    background: '#ffffff',
+    background: 'var(--surface-solid)',
     padding: '60px 20px 50px',
     textAlign: 'center',
-    borderBottom: '1px solid #e8e8e8',
+    borderBottom: '1px solid var(--surface-border)',
   },
   title: {
     fontSize: 'clamp(2.8rem, 6vw, 4.5rem)',
     fontWeight: '900',
     margin: '0',
-    color: '#333',
+    color: 'var(--text-heading)',
     letterSpacing: '-0.03em',
     lineHeight: '1.1',
   },
@@ -454,7 +454,7 @@ const styles = {
   },
   subtitle: {
     fontSize: 'clamp(1.1rem, 2vw, 1.3rem)',
-    color: '#666',
+    color: 'var(--text-soft)',
     margin: '20px 0 0',
     fontWeight: '400',
   },
@@ -469,7 +469,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    color: '#666',
+    color: 'var(--text-soft)',
     fontSize: '0.95rem',
     fontWeight: '500',
   },
@@ -482,9 +482,9 @@ const styles = {
     padding: '50px 20px',
   },
   uploadCard: {
-    background: '#ffffff',
+    background: 'var(--surface-solid)',
     borderRadius: '16px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+    boxShadow: 'var(--card-shadow-soft)',
     overflow: 'hidden',
   },
   dropzone: {
@@ -494,12 +494,12 @@ const styles = {
     textAlign: 'center',
     cursor: 'pointer',
     transition: 'all 0.3s ease',
-    background: '#fafbfc',
+    background: 'var(--surface)',
     margin: '20px',
   },
   dropzoneActive: {
     borderColor: '#27ae60',
-    background: '#f0faf4',
+    background: 'color-mix(in srgb, #27ae60 12%, var(--surface-solid))',
   },
   dropzoneContent: {
     display: 'flex',
@@ -523,12 +523,12 @@ const styles = {
   dropzoneTitle: {
     fontSize: '1.6rem',
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: 'var(--text-heading)',
     margin: '0',
   },
   dropzoneDesc: {
     fontSize: '1rem',
-    color: '#888',
+    color: 'var(--text-soft)',
     margin: '0',
   },
   selectButton: {
@@ -549,7 +549,7 @@ const styles = {
   },
   hint: {
     fontSize: '0.9rem',
-    color: '#999',
+    color: 'var(--text-soft)',
     margin: '8px 0 0',
     display: 'flex',
     alignItems: 'center',
@@ -566,7 +566,7 @@ const styles = {
     alignItems: 'center',
     gap: '24px',
     padding: '24px',
-    background: '#f8f9fa',
+    background: 'var(--surface)',
     borderRadius: '12px',
     marginBottom: '30px',
   },
@@ -588,13 +588,13 @@ const styles = {
   fileName: {
     fontSize: '1.2rem',
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: 'var(--text-heading)',
     margin: '0 0 8px 0',
     wordBreak: 'break-word',
   },
   fileSize: {
     fontSize: '0.95rem',
-    color: '#666',
+    color: 'var(--text-soft)',
     margin: '0 0 4px 0',
   },
   fileStatus: {
@@ -644,7 +644,7 @@ const styles = {
   },
   hintText: {
     fontSize: '0.9rem',
-    color: '#999',
+    color: 'var(--text-soft)',
     margin: '0',
     display: 'flex',
     alignItems: 'center',
@@ -664,12 +664,12 @@ const styles = {
   successTitle: {
     fontSize: '1.6rem',
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: 'var(--text-heading)',
     margin: '0',
   },
   successDesc: {
     fontSize: '1rem',
-    color: '#666',
+    color: 'var(--text-soft)',
     margin: '0',
   },
   downloadButton: {
@@ -689,8 +689,8 @@ const styles = {
   },
   resetButton: {
     background: 'transparent',
-    color: '#666',
-    border: '2px solid #e0e0e0',
+    color: 'var(--text-soft)',
+    border: '2px solid var(--surface-border)',
     padding: '14px 36px',
     borderRadius: '50px',
     fontSize: '1rem',
@@ -705,7 +705,7 @@ const styles = {
   progressBar: {
     width: '100%',
     height: '8px',
-    background: '#e9ecef',
+    background: 'var(--surface-border)',
     borderRadius: '4px',
     overflow: 'hidden',
   },
@@ -717,7 +717,7 @@ const styles = {
   progressText: {
     textAlign: 'center',
     fontSize: '0.95rem',
-    color: '#666',
+    color: 'var(--text-soft)',
     marginTop: '12px',
   },
   errorBox: {
@@ -725,7 +725,7 @@ const styles = {
     alignItems: 'center',
     gap: '12px',
     padding: '16px 20px',
-    background: '#fee',
+    background: 'color-mix(in srgb, #ef4444 12%, var(--surface-solid))',
     border: '1px solid #fcc',
     borderRadius: '10px',
     color: '#e74c3c',

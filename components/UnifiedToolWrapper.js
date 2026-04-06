@@ -59,8 +59,12 @@ export default function UnifiedToolWrapper({ tool, children }) {
           </div>
           <div className="unified-feature-card">
             <div className="unified-feature-icon">🔒</div>
-            <h3>Secure & Private</h3>
-            <p>Files stay in your browser. Nothing is uploaded to external servers.</p>
+            <h3>Secure &amp; Private</h3>
+            <p>
+              {tool?.processing === 'client' 
+                ? 'Files stay in your browser. Nothing is uploaded to external servers.'
+                : 'Processed on our secure servers. Files are automatically deleted after conversion.'}
+            </p>
           </div>
         </div>
       </section>
@@ -70,13 +74,13 @@ export default function UnifiedToolWrapper({ tool, children }) {
       <style jsx>{`
         .unified-wrapper-container {
           min-height: 100vh;
-          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+          background: linear-gradient(135deg, var(--page-top) 0%, var(--page-bg) 48%, var(--page-bottom) 100%);
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
         /* ===== Hero ===== */
         .unified-hero {
-          background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+          background: var(--hero-deep-bg);
           padding: 48px 20px 40px;
           text-align: center;
           position: relative;
@@ -89,8 +93,8 @@ export default function UnifiedToolWrapper({ tool, children }) {
           left: -20%;
           width: 140%;
           height: 200%;
-          background: radial-gradient(ellipse at 30% 20%, rgba(231, 76, 60, 0.12) 0%, transparent 50%),
-                      radial-gradient(ellipse at 70% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
+          background: radial-gradient(ellipse at 30% 20%, var(--hero-deep-glow-a) 0%, transparent 50%),
+                      radial-gradient(ellipse at 70% 80%, var(--hero-deep-glow-b) 0%, transparent 50%);
           pointer-events: none;
         }
         .unified-hero-content {
@@ -103,7 +107,7 @@ export default function UnifiedToolWrapper({ tool, children }) {
           font-size: clamp(2.2rem, 5vw, 3.2rem);
           font-weight: 900;
           margin: 0;
-          color: #ffffff;
+          color: var(--text-contrast);
           letter-spacing: -0.02em;
         }
         .unified-highlight {
@@ -114,7 +118,7 @@ export default function UnifiedToolWrapper({ tool, children }) {
         }
         .unified-subtitle {
           font-size: clamp(1rem, 2vw, 1.2rem);
-          color: rgba(255, 255, 255, 0.7);
+          color: var(--hero-copy);
           margin: 12px 0 20px;
           font-weight: 400;
           line-height: 1.6;
@@ -127,10 +131,10 @@ export default function UnifiedToolWrapper({ tool, children }) {
         }
         .unified-badge {
           padding: 6px 16px;
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: var(--hero-badge-bg);
+          border: 1px solid var(--hero-badge-border);
           border-radius: 50px;
-          color: rgba(255, 255, 255, 0.85);
+          color: var(--hero-badge-text);
           font-size: 0.82rem;
           font-weight: 600;
         }
@@ -139,9 +143,10 @@ export default function UnifiedToolWrapper({ tool, children }) {
         .unified-tool-card {
           max-width: 960px;
           margin: -20px auto 32px;
-          background: white;
+          background: var(--surface-solid);
+          border: 1px solid var(--surface-border);
           border-radius: 20px;
-          box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+          box-shadow: var(--card-shadow-soft);
           padding: 32px;
           position: relative;
           z-index: 2;
@@ -158,7 +163,7 @@ export default function UnifiedToolWrapper({ tool, children }) {
           font-weight: 800;
           text-align: center;
           margin: 0 0 32px;
-          color: #1a1a1a;
+          color: var(--text-heading);
         }
         .unified-features-grid {
           display: grid;
@@ -168,15 +173,19 @@ export default function UnifiedToolWrapper({ tool, children }) {
         .unified-feature-card {
           padding: 28px 20px;
           border-radius: 16px;
-          background: white;
-          border: 1px solid #f0f0f0;
+          background: var(--surface-solid);
+          border: 1px solid var(--surface-border);
           text-align: center;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+          transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+          box-shadow: var(--card-shadow-soft);
         }
         .unified-feature-card:hover {
           transform: translateY(-4px);
-          box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+          border-color: var(--tool-hover-border);
+          box-shadow:
+            var(--card-shadow-soft),
+            0 0 0 1px var(--tool-hover-border),
+            0 14px 32px var(--tool-hover-glow);
         }
         .unified-feature-icon {
           font-size: 2.2rem;
@@ -185,11 +194,11 @@ export default function UnifiedToolWrapper({ tool, children }) {
         .unified-feature-card h3 {
           font-size: 1.15rem;
           font-weight: 700;
-          color: #1a1a1a;
+          color: var(--text-heading);
           margin: 0 0 6px;
         }
         .unified-feature-card p {
-          color: #666;
+          color: var(--text-soft);
           margin: 0;
           line-height: 1.6;
           font-size: 0.95rem;
@@ -237,7 +246,7 @@ export default function UnifiedToolWrapper({ tool, children }) {
         }
         .unified-tool-card .action-row .primary-button {
           background: linear-gradient(135deg, ${accentColor} 0%, ${accentColor}cc 100%);
-          color: white;
+          color: var(--text-contrast);
           border: none;
           padding: 18px 56px;
           border-radius: 12px;
@@ -265,7 +274,7 @@ export default function UnifiedToolWrapper({ tool, children }) {
 
         /* Style the new iLovePDF uploader inside the tool card */
         .unified-tool-card .ilp-uploader {
-          background: #f4f5f7;
+          background: var(--surface);
           border-radius: 16px;
         }
       `}</style>

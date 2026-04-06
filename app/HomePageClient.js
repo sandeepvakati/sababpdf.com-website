@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { AdInContent } from '../components/AdBanner';
+import ToolIcon from '../components/ToolIcon';
 import { TOOL_GROUPS, ALL_TOOLS } from '../lib/toolsList';
 import { useState } from 'react';
 
@@ -52,39 +53,20 @@ export default function HomePageClient() {
 
           {/* Tool cards grid */}
           <div className="tools-ilp-grid">
-            {filteredTools.map((tool) => {
-              const isSvgIcon = typeof tool.icon === 'string' && tool.icon.includes('<svg');
-              return (
-                <Link
-                  key={tool.id}
-                  href={tool.href}
-                  className="tool-ilp-card"
-                  prefetch
-                >
-                  <div
-                    className="tool-ilp-icon"
-                    style={{ color: tool.color }}
-                  >
-                    {isSvgIcon ? (
-                      <span
-                        dangerouslySetInnerHTML={{ __html: tool.icon }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '100%',
-                          height: '100%',
-                        }}
-                      />
-                    ) : (
-                      <span className="tool-ilp-glyph">{tool.glyph || tool.icon}</span>
-                    )}
-                  </div>
-                  <h3 className="tool-ilp-name">{tool.title}</h3>
-                  <p className="tool-ilp-desc">{tool.description}</p>
-                </Link>
-              );
-            })}
+            {filteredTools.map((tool) => (
+              <Link
+                key={tool.id}
+                href={tool.href}
+                className="tool-ilp-card"
+                prefetch
+              >
+                <div className="tool-ilp-icon">
+                  <ToolIcon tool={tool} size="md" />
+                </div>
+                <h3 className="tool-ilp-name">{tool.title}</h3>
+                <p className="tool-ilp-desc">{tool.description}</p>
+              </Link>
+            ))}
           </div>
         </section>
 
@@ -173,7 +155,7 @@ export default function HomePageClient() {
         /* HERO SECTION — iLovePDF-style (light pink)    */
         /* ============================================ */
         .hero-ilp {
-          background: linear-gradient(180deg, #fce4ec 0%, #fff5f5 60%, #ffffff 100%);
+          background: var(--home-hero-bg);
           padding: 80px 24px 48px;
           text-align: center;
         }
@@ -186,7 +168,7 @@ export default function HomePageClient() {
         .hero-ilp-title {
           font-size: clamp(2rem, 4.5vw, 3rem);
           font-weight: 900;
-          color: #1a1a2e;
+          color: var(--text-heading);
           margin: 0 0 18px;
           line-height: 1.2;
           letter-spacing: -0.01em;
@@ -194,7 +176,7 @@ export default function HomePageClient() {
 
         .hero-ilp-subtitle {
           font-size: clamp(0.95rem, 1.8vw, 1.1rem);
-          color: #555;
+          color: var(--text-soft);
           margin: 0;
           line-height: 1.7;
           max-width: 750px;
@@ -223,104 +205,115 @@ export default function HomePageClient() {
         .tools-ilp-tab {
           padding: 10px 22px;
           border-radius: 50px;
-          border: 1.5px solid #e0e0e0;
-          background: white;
-          color: #555;
+          border: 1.5px solid var(--surface-border);
+          background: var(--surface-solid);
+          color: var(--text-soft);
           font-size: 0.9rem;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.25s ease;
+          transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
         }
 
         .tools-ilp-tab:hover {
-          background: #f5f5f5;
-          border-color: #ccc;
+          background: var(--nav-hover-bg);
+          border-color: var(--tool-hover-border);
+          color: var(--text-main);
+          box-shadow: 0 0 0 4px var(--tool-hover-ring);
         }
 
         .tools-ilp-tab-active {
-          background: #1a1a2e;
-          color: white;
-          border-color: #1a1a2e;
+          background: var(--text-main);
+          color: var(--surface-solid);
+          border-color: var(--text-main);
         }
 
         .tools-ilp-tab-active:hover {
-          background: #2a2a3e;
-          border-color: #2a2a3e;
+          background: var(--text-main);
+          border-color: var(--tool-hover-border);
+          color: var(--surface-solid);
         }
 
         /* Tool cards grid */
         .tools-ilp-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-          gap: 20px;
+          grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+          gap: 22px;
         }
 
         .tool-ilp-card {
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          padding: 24px 20px;
-          background: white;
-          border-radius: 16px;
-          border: 1.5px solid #f0f0f0;
+          padding: 24px 22px;
+          background: var(--surface-solid);
+          border-radius: 20px;
+          border: 1px solid var(--muted-border);
           text-decoration: none;
-          transition: all 0.3s ease;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+          transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+          box-shadow: var(--card-shadow-soft);
+          min-height: 228px;
         }
 
-        .tool-ilp-card:hover {
-          border-color: #ddd;
-          transform: translateY(-4px);
-          box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+        .tool-ilp-card:hover,
+        .tool-ilp-card:focus-visible {
+          border-color: var(--tool-hover-border);
+          background: var(--surface-solid);
+          transform: translateY(-2px);
+          box-shadow:
+            var(--card-shadow-soft),
+            0 0 0 1px var(--tool-hover-border),
+            0 0 0 6px var(--tool-hover-ring),
+            0 20px 38px var(--tool-hover-glow);
         }
 
         .tool-ilp-icon {
-          width: 48px;
-          height: 48px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
           margin-bottom: 14px;
-          flex-shrink: 0;
         }
 
-        .tool-ilp-icon svg {
-          width: 44px;
-          height: 44px;
-          stroke: currentColor;
-          fill: none;
+        .tool-ilp-card:hover :global(.tool-icon),
+        .tool-ilp-card:focus-visible :global(.tool-icon) {
+          color: var(--tool-hover-icon-color);
         }
 
-        .tool-ilp-glyph {
-          font-size: 2rem;
-          font-weight: 800;
-          line-height: 1;
+        .tool-ilp-card:hover :global(.tool-icon-framed),
+        .tool-ilp-card:focus-visible :global(.tool-icon-framed) {
+          background: var(--tool-hover-icon-bg);
+          border-color: var(--tool-hover-border);
+          box-shadow:
+            0 0 0 1px var(--tool-hover-border),
+            0 14px 30px var(--tool-hover-glow);
+          transform: translateY(-2px);
         }
 
         .tool-ilp-name {
-          font-size: 1rem;
-          font-weight: 700;
-          color: #1a1a1a;
+          font-size: 1.08rem;
+          font-weight: 800;
+          color: var(--text-heading);
           margin: 0 0 8px;
           line-height: 1.3;
         }
 
         .tool-ilp-desc {
-          font-size: 0.82rem;
-          color: #888;
-          line-height: 1.5;
+          font-size: 0.88rem;
+          color: var(--text-soft);
+          line-height: 1.65;
           margin: 0;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
 
-        .tool-ilp-card:hover .tool-ilp-name {
-          color: #e74c3c;
+        .tool-ilp-card:hover .tool-ilp-name,
+        .tool-ilp-card:focus-visible .tool-ilp-name {
+          color: var(--text-heading);
         }
 
         /* ============================================ */
         /* NO LOGIN BANNER                               */
         /* ============================================ */
         .no-login-banner {
-          background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+          background: var(--home-banner-bg);
           padding: 64px 24px;
           margin: 20px 0 0;
         }
@@ -339,13 +332,13 @@ export default function HomePageClient() {
         .no-login-title {
           font-size: clamp(1.8rem, 3.5vw, 2.4rem);
           font-weight: 800;
-          color: white;
+          color: var(--text-contrast);
           margin: 0 0 16px;
         }
 
         .no-login-text {
           font-size: 1.05rem;
-          color: rgba(255, 255, 255, 0.7);
+          color: var(--hero-copy);
           margin: 0 0 36px;
           line-height: 1.7;
           max-width: 600px;
@@ -373,7 +366,7 @@ export default function HomePageClient() {
         }
 
         .stat-item span {
-          color: rgba(255, 255, 255, 0.6);
+          color: color-mix(in srgb, var(--text-contrast) 62%, transparent);
           font-size: 0.9rem;
           font-weight: 600;
         }
@@ -391,7 +384,7 @@ export default function HomePageClient() {
           font-size: clamp(2rem, 4vw, 2.8rem);
           font-weight: 800;
           text-align: center;
-          color: #1a1a1a;
+          color: var(--text-heading);
           margin: 0 0 48px;
         }
 
@@ -402,13 +395,13 @@ export default function HomePageClient() {
         }
 
         .why-card-new {
-          background: white;
+          background: var(--surface-solid);
           padding: 36px 28px;
           border-radius: 20px;
           text-align: center;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-          transition: all 0.3s ease;
-          border: 1px solid #f0f0f0;
+          box-shadow: var(--card-shadow-soft);
+          transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+          border: 1px solid var(--surface-border);
           position: relative;
           overflow: hidden;
         }
@@ -425,7 +418,11 @@ export default function HomePageClient() {
 
         .why-card-new:hover {
           transform: translateY(-8px);
-          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1);
+          border-color: var(--tool-hover-border);
+          box-shadow:
+            var(--card-shadow-soft),
+            0 0 0 1px var(--tool-hover-border),
+            0 14px 36px var(--tool-hover-glow);
         }
 
         .why-card-icon-new {
@@ -437,18 +434,18 @@ export default function HomePageClient() {
           justify-content: center;
           font-size: 1.8rem;
           margin: 0 auto 18px;
-          background: var(--card-bg);
+          background: color-mix(in srgb, var(--card-color) 14%, var(--surface-solid));
         }
 
         .why-card-new h3 {
           font-size: 1.3rem;
           font-weight: 700;
-          color: #1a1a1a;
+          color: var(--text-heading);
           margin: 0 0 12px;
         }
 
         .why-card-new p {
-          color: #666;
+          color: var(--text-soft);
           line-height: 1.7;
           margin: 0;
           font-size: 0.95rem;
@@ -474,27 +471,31 @@ export default function HomePageClient() {
         .step-connector {
           width: 40px;
           height: 2px;
-          background: linear-gradient(90deg, #e74c3c, #f97316);
+          background: var(--home-step-gradient);
           margin-top: 40px;
           flex-shrink: 0;
         }
 
         .how-step-new {
-          background: white;
+          background: var(--surface-solid);
           padding: 32px 24px;
           border-radius: 20px;
           text-align: center;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          box-shadow: var(--card-shadow-soft);
           position: relative;
           max-width: 220px;
           width: 100%;
-          border: 1px solid #f0f0f0;
-          transition: all 0.3s ease;
+          border: 1px solid var(--surface-border);
+          transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
         }
 
         .how-step-new:hover {
           transform: translateY(-5px);
-          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+          border-color: var(--tool-hover-border);
+          box-shadow:
+            var(--card-shadow-soft),
+            0 0 0 1px var(--tool-hover-border),
+            0 12px 30px var(--tool-hover-glow);
         }
 
         .step-number-new {
@@ -502,7 +503,7 @@ export default function HomePageClient() {
           height: 50px;
           border-radius: 50%;
           background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-          color: white;
+          color: var(--text-contrast);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -515,12 +516,12 @@ export default function HomePageClient() {
         .how-step-new h3 {
           font-size: 1.15rem;
           font-weight: 700;
-          color: #1a1a1a;
+          color: var(--text-heading);
           margin: 0 0 8px;
         }
 
         .how-step-new p {
-          color: #666;
+          color: var(--text-soft);
           line-height: 1.6;
           margin: 0;
           font-size: 0.9rem;
@@ -586,14 +587,8 @@ export default function HomePageClient() {
 }
 
 function WhyChooseCard({ icon, title, description, color }) {
-  const bgMap = {
-    '#e74c3c': '#fef2f2',
-    '#3b82f6': '#eff6ff',
-    '#10b981': '#ecfdf5',
-    '#f97316': '#fff7ed',
-  };
   return (
-    <div className="why-card-new" style={{ '--card-color': color, '--card-bg': bgMap[color] || '#f5f5f5' }}>
+    <div className="why-card-new" style={{ '--card-color': color }}>
       <div className="why-card-icon-new">{icon}</div>
       <h3>{title}</h3>
       <p>{description}</p>

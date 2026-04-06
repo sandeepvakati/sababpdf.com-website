@@ -3,6 +3,28 @@ import './globals.css';
 
 const siteUrl = 'https://sababpdf.com';
 const adsenseId = process.env.NEXT_PUBLIC_ADSENSE_ID || '';
+const themeInitScript = `
+  (() => {
+    const root = document.documentElement;
+    const storageKey = 'sababpdf-theme';
+
+    try {
+      const savedTheme = window.localStorage.getItem(storageKey);
+      const nextTheme =
+        savedTheme === 'light' || savedTheme === 'dark'
+          ? savedTheme
+          : window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light';
+
+      root.dataset.theme = nextTheme;
+      root.style.colorScheme = nextTheme;
+    } catch (error) {
+      root.dataset.theme = 'light';
+      root.style.colorScheme = 'light';
+    }
+  })();
+`;
 
 export const metadata = {
   metadataBase: new URL(siteUrl),
@@ -38,8 +60,11 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {themeInitScript}
+        </Script>
         <link rel="icon" href="/sababpdf-sunpdf-logo.svg" type="image/svg+xml" />
       </head>
       <body>

@@ -3,6 +3,7 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import { AdInContent } from './AdBanner';
 import ToolCard from './ToolCard';
+import ToolIcon from './ToolIcon';
 import { ALL_TOOLS } from '../lib/toolsList';
 
 export default function ToolLayout({ tool, children }) {
@@ -20,45 +21,9 @@ export default function ToolLayout({ tool, children }) {
             <span className="accent-line">{tool.title}</span>
           </div>
 
-          <div
-            className="tool-hero-icon"
-            style={{
-              width: 76,
-              height: 76,
-              borderRadius: 22,
-              background: tool.bg,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 20px',
-              border: '1px solid rgba(90, 55, 20, 0.08)',
-              color: tool.color,
-            }}
-          >
-            {typeof tool.icon === 'string' && tool.icon.includes('<svg') ? (
-              <span
-                dangerouslySetInnerHTML={{ __html: tool.icon }}
-                style={{
-                  width: 48,
-                  height: 48,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              />
-            ) : (
-              <span style={{ fontWeight: 800, fontSize: 34 }}>{tool.glyph || tool.icon}</span>
-            )}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+            <ToolIcon tool={tool} size="hero" />
           </div>
-
-          <style jsx>{`
-            .tool-hero-icon svg {
-              width: 48px;
-              height: 48px;
-              max-width: 100%;
-              max-height: 100%;
-            }
-          `}</style>
 
           <h1 className="section-heading" style={{ marginBottom: 12 }}>
             {tool.title}

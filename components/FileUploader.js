@@ -16,6 +16,7 @@ export default function FileUploader({
   currentCount = 0,
   showUploadHint = false,
   uploadHintText = 'Add files here',
+  capture = undefined,
 }) {
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
@@ -35,10 +36,12 @@ export default function FileUploader({
 
   const buttonText = (() => {
     if (multiple && currentCount > 0) return 'Add More Files';
+    if (capture) return 'Use Camera';
     return `Select ${fileTypeLabel} file${multiple ? 's' : ''}`;
   })();
 
   const dropText = (() => {
+    if (capture) return 'or drop image files here';
     if (accept.includes('.doc')) return 'or drop Word documents here';
     if (accept.includes('.ppt')) return 'or drop POWERPOINT slideshows here';
     if (accept.includes('.xls')) return 'or drop Excel files here';
@@ -98,6 +101,7 @@ export default function FileUploader({
         <input
           type="file"
           accept={accept}
+          capture={capture}
           multiple={multiple}
           onChange={onInputChange}
           style={{ display: 'none' }}

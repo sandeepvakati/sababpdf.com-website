@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import BrandLogo from './BrandLogo';
+import ThemeToggle from './ThemeToggle';
+import ToolIcon from './ToolIcon';
 import { ALL_TOOLS, TOOL_GROUPS } from '../lib/toolsList';
 
 export default function Navbar() {
@@ -77,32 +79,33 @@ export default function Navbar() {
           ))}
         </nav>
 
-        <div className="search-box">
-          <button
-            type="button"
-            className="search-toggle"
-            onMouseEnter={() => setShowToolsMenu(false)}
-            onClick={() => {
-              setShowToolsMenu(false);
-              setShowSearch((open) => !open);
-            }}
-          >
-            Search tools
-          </button>
+        <div className="nav-actions">
+          <ThemeToggle />
 
-          {showSearch ? (
-            <div className="search-panel">
-              <input
-                autoFocus
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search PDF tools..."
-              />
-              {filteredTools.length > 0 ? (
-                <div className="result-list">
-                  {filteredTools.map((tool) => {
-                    const isSvgIcon = typeof tool.icon === 'string' && tool.icon.includes('<svg');
-                    return (
+          <div className="search-box">
+            <button
+              type="button"
+              className="search-toggle"
+              onMouseEnter={() => setShowToolsMenu(false)}
+              onClick={() => {
+                setShowToolsMenu(false);
+                setShowSearch((open) => !open);
+              }}
+            >
+              Search tools
+            </button>
+
+            {showSearch ? (
+              <div className="search-panel">
+                <input
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search PDF tools..."
+                />
+                {filteredTools.length > 0 ? (
+                  <div className="result-list">
+                    {filteredTools.map((tool) => (
                       <Link
                         key={tool.id}
                         href={tool.href}
@@ -112,30 +115,24 @@ export default function Navbar() {
                           setSearchQuery('');
                         }}
                       >
-                        <span style={{ fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {isSvgIcon ? (
-                            <span 
-                              dangerouslySetInnerHTML={{ __html: tool.icon }}
-                              style={{ width: 24, height: 24 }}
-                            />
-                          ) : (
-                            tool.icon
-                          )}
+                        <ToolIcon tool={tool} size="xs" />
+                        <span className="result-link-copy">
+                          <strong>{tool.title}</strong>
+                          <small>{tool.description}</small>
                         </span>
-                        <span>{tool.title}</span>
                       </Link>
-                    );
-                  })}
-                </div>
-              ) : null}
+                    ))}
+                  </div>
+                ) : null}
 
-              {searchQuery.length > 1 && !filteredTools.length ? (
-                <p className="helper-text" style={{ padding: '8px 4px 0' }}>
-                  No tools found for "{searchQuery}".
-                </p>
-              ) : null}
-            </div>
-          ) : null}
+                {searchQuery.length > 1 && !filteredTools.length ? (
+                  <p className="helper-text" style={{ padding: '8px 4px 0' }}>
+                    No tools found for "{searchQuery}".
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -158,34 +155,28 @@ export default function Navbar() {
             <div className="mega-grid">
               {TOOL_GROUPS.map((group) => (
                 <section key={group.name} className="mega-column">
-                  <p className="mega-title">{group.name}</p>
+                  <div className="mega-group-header">
+                    <p className="mega-title">{group.name}</p>
+                    <span className="mega-count">{group.tools.length} tools</span>
+                  </div>
                   <div className="mega-list">
-                    {group.tools.map((tool) => {
-                      const isSvgIcon = typeof tool.icon === 'string' && tool.icon.includes('<svg');
-                      return (
-                        <Link
-                          key={tool.id}
-                          href={tool.href}
-                          className="mega-link"
-                          onClick={() => {
-                            setShowToolsMenu(false);
-                            setShowSearch(false);
-                          }}
-                        >
-                          <span className="mega-icon" style={{ background: tool.bg, color: tool.color }}>
-                            {isSvgIcon ? (
-                              <span 
-                                dangerouslySetInnerHTML={{ __html: tool.icon }}
-                                style={{ width: 28, height: 28 }}
-                              />
-                            ) : (
-                              tool.icon
-                            )}
-                          </span>
-                          <span>{tool.title}</span>
-                        </Link>
-                      );
-                    })}
+                    {group.tools.map((tool) => (
+                      <Link
+                        key={tool.id}
+                        href={tool.href}
+                        className="mega-link"
+                        onClick={() => {
+                          setShowToolsMenu(false);
+                          setShowSearch(false);
+                        }}
+                      >
+                        <ToolIcon tool={tool} size="sm" />
+                        <span className="mega-link-copy">
+                          <strong>{tool.title}</strong>
+                          <small>{tool.description}</small>
+                        </span>
+                      </Link>
+                    ))}
                   </div>
                 </section>
               ))}
