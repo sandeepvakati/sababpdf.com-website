@@ -60,7 +60,14 @@ function buildJsonResponse(message, status) {
 
 function runLibreOffice(inputPath, outputDir) {
   return new Promise((resolve, reject) => {
-    const args = ['--headless', '--convert-to', 'pdf', '--outdir', outputDir, inputPath];
+    // ✅ Use calc_pdf_Export filter for Excel files + norestore for stability
+    const args = [
+      '--headless',
+      '--norestore',
+      '--convert-to', 'pdf:calc_pdf_Export',
+      '--outdir', outputDir,
+      inputPath
+    ];
 
     // On Windows the binary may be a quoted path, so use shell mode
     const useShell = process.platform === 'win32';
@@ -69,6 +76,13 @@ function runLibreOffice(inputPath, outputDir) {
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
       shell: useShell,
+      // ✅ Add env vars to help LibreOffice run in headless mode
+      env: {
+        ...process.env,
+        HOME: os.tmpdir(),
+        TMPDIR: os.tmpdir(),
+        USERPROFILE: os.tmpdir(),
+      },
     });
 
     let stdout = '';
@@ -170,6 +184,8 @@ export async function POST(request) {
       }
 
       console.error('[Excel-to-PDF] Conversion error:', errorDetail);
+      console.error('[Excel-to-PDF] LibreOffice stdout:', result.stdout);
+      console.error('[Excel-to-PDF] LibreOffice stderr:', result.stderr);
       return buildJsonResponse(userMessage, 500);
     }
 
