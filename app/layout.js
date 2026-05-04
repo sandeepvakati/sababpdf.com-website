@@ -2,7 +2,7 @@ import Script from 'next/script';
 import './globals.css';
 
 const siteUrl = 'https://sababpdf.com';
-const adsenseId = process.env.NEXT_PUBLIC_ADSENSE_ID || '';
+const adsenseId = 'ca-pub-6652616063027324';
 const themeInitScript = `
   (() => {
     const root = document.documentElement;
