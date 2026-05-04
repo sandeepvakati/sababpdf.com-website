@@ -2,6 +2,7 @@
 
 import Navbar from './Navbar';
 import Footer from './Footer';
+import { AdInContent } from './AdBanner';
 
 /**
  * UnifiedToolWrapper - iLovePDF-style wrapper for ALL tools.
@@ -43,6 +44,7 @@ export default function UnifiedToolWrapper({ tool, children }) {
         {children}
       </section>
 
+      <AdInContent />
       {/* Features Section */}
       <section className="unified-features-section">
         <h2 className="unified-features-title">Why use SababPDF?</h2>
