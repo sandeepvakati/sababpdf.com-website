@@ -132,30 +132,51 @@ function buildGuide(tool) {
   };
 }
 
-/** SEO content section - hidden for visual but available for search engines */
+/** SEO content section - Optimized for Google AdSense and User Experience */
 function SeoContent({ tool, guide }) {
   return (
-    <section className="seo-content-section" style={{ position: 'absolute', width: '1px', height: '1px', padding: '0', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: '0' }}>
-      <div className="content-grid">
-        <section className="article-card">
-          <h2>{tool.title} workflow</h2>
-          <ol>
-            {guide.steps.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
-        </section>
+    <section className="mt-16 pb-16 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-gray-700 font-sans">
+      
+      {/* How to Use Section */}
+      <div className="mb-12">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+          <span className="bg-red-100 text-red-600 p-2 rounded-lg mr-3 text-sm">💡</span>
+          How to use {tool.title}
+        </h2>
+        <ol className="list-decimal list-inside space-y-4 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+          {guide.steps.map((step) => (
+            <li key={step} className="text-lg text-gray-700 pl-2 leading-relaxed">{step}</li>
+          ))}
+        </ol>
       </div>
-      <section className="section-block">
-        <div className="article-grid">
+
+      {/* FAQ Section */}
+      <div className="mb-12">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+          <span className="bg-blue-100 text-blue-600 p-2 rounded-lg mr-3 text-sm">❓</span>
+          Frequently Asked Questions
+        </h2>
+        <div className="grid gap-6 md:grid-cols-2">
           {guide.faq.map((entry) => (
-            <article key={entry.question}>
-              <h3>{entry.question}</h3>
-              <p>{entry.answer}</p>
+            <article key={entry.question} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h3 className="font-bold text-lg text-gray-900 mb-3">{entry.question}</h3>
+              <p className="text-gray-600 leading-relaxed">{entry.answer}</p>
             </article>
           ))}
         </div>
-      </section>
+      </div>
+
+      {/* Why Use SababPDF Section */}
+      <div className="bg-gradient-to-br from-red-50 to-orange-50 p-8 rounded-2xl border border-red-100 shadow-sm">
+        <h2 className="text-2xl font-bold text-red-900 mb-4 flex items-center">
+          <span className="bg-white text-red-600 p-2 rounded-lg mr-3 text-sm shadow-sm">🚀</span>
+          Why use SababPDF?
+        </h2>
+        <p className="text-red-800 leading-relaxed text-lg">
+          SababPDF is built for speed, premium quality, and complete security. Our {tool.title} tool processes your files securely, ensuring your private data remains 100% confidential. You don't need to create an account, download software, or pay expensive subscription fees—just a fast, seamless experience directly in your browser. All uploaded files are automatically and permanently deleted from our servers after processing, guaranteeing your complete privacy.
+        </p>
+      </div>
+
     </section>
   );
 }
