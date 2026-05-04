@@ -173,7 +173,7 @@ function SeoContent({ tool, guide }) {
           Why use SababPDF?
         </h2>
         <p className="text-red-800 leading-relaxed text-lg">
-          SababPDF is built for speed, premium quality, and complete security. Our {tool.title} tool processes your files securely, ensuring your private data remains 100% confidential. You don't need to create an account, download software, or pay expensive subscription fees—just a fast, seamless experience directly in your browser. All uploaded files are automatically and permanently deleted from our servers after processing, guaranteeing your complete privacy.
+          SababPDF is built for speed, premium quality, and complete security. Our {tool.title} tool processes your files securely, ensuring your private data remains 100% confidential. You do not need to create an account, download software, or pay expensive subscription fees—just a fast, seamless experience directly in your browser. All uploaded files are automatically and permanently deleted from our servers after processing, guaranteeing your complete privacy.
         </p>
       </div>
 
