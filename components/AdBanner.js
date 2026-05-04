@@ -1,11 +1,11 @@
 'use client';
 import { useEffect } from 'react';
 
-const PUBLISHER_ID = process.env.NEXT_PUBLIC_ADSENSE_ID || '';
+const PUBLISHER_ID = process.env.NEXT_PUBLIC_ADSENSE_ID || 'ca-pub-6652616063027324';
 const AD_SLOTS = {
-  banner: process.env.NEXT_PUBLIC_ADSENSE_SLOT_BANNER || '',
-  rectangle: process.env.NEXT_PUBLIC_ADSENSE_SLOT_RECTANGLE || '',
-  sidebar: process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR || '',
+  banner: process.env.NEXT_PUBLIC_ADSENSE_SLOT_BANNER || '4562206931',
+  rectangle: process.env.NEXT_PUBLIC_ADSENSE_SLOT_RECTANGLE || '4562206931',
+  sidebar: process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR || '4562206931',
 };
 
 function canRenderAds(slot) {
