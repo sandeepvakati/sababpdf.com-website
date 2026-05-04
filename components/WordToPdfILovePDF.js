@@ -2,9 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { motion } from 'framer-motion';
-import { Upload, FileText, CheckCircle, X, Loader2, Download, Home } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { CheckCircle, AlertCircle, Loader2, Download, RotateCcw, FileText } from 'lucide-react';
 
 function formatBytes(bytes, decimals = 2) {
   if (!+bytes) return '0 Bytes';
@@ -15,721 +13,304 @@ function formatBytes(bytes, decimals = 2) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 
-export default function WordToPdfILovePDF({ embedded = false }) {
-  const router = useRouter();
-  const [file, setFile] = useState(null);
-  const [isConverting, setIsConverting] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [statusMessage, setStatusMessage] = useState('');
-  const [error, setError] = useState(null);
-  const [result, setResult] = useState(null);
+export default function WordToPdfILovePDF() {
+  const [file,          setFile]          = useState(null);
+  const [step,          setStep]          = useState('upload');   // upload | converting | result | error
+  const [progress,      setProgress]      = useState(0);
+  const [statusMsg,     setStatusMsg]     = useState('');
+  const [error,         setError]         = useState(null);
+  const [resultBlob,    setResultBlob]    = useState(null);
+  const [errorIsConfig, setErrorIsConfig] = useState(false);     // true = LibreOffice not installed
 
-  const CLIENT_CONVERTER_TIMEOUT_MS = 5 * 60 * 1000;
-
-  const handleGoHome = () => {
-    router.push('/');
-  };
-
-  const onDrop = useCallback(async (acceptedFiles, rejectedFiles) => {
+  // ── Drop zone ─────────────────────────────────────────────────────
+  const onDrop = useCallback((accepted, rejected) => {
     setError(null);
-    setResult(null);
-
-    if (rejectedFiles.length > 0) {
-      setError('Please upload a valid Word file (.doc or .docx)');
+    if (rejected.length) {
+      const code = rejected[0]?.errors?.[0]?.code;
+      if (code === 'file-invalid-type') setError('Please upload a .doc or .docx Word file.');
+      else if (code === 'file-too-large') setError('File exceeds 50 MB limit.');
+      else setError('Could not read that file. Please try again.');
       return;
     }
-
-    const selectedFile = acceptedFiles[0];
-    if (!selectedFile) return;
-
-    setFile(selectedFile);
+    if (accepted[0]) setFile(accepted[0]);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
     },
     maxFiles: 1,
     maxSize: 50 * 1024 * 1024,
   });
 
-  const handleConvert = async () => {
+  // ── Convert ───────────────────────────────────────────────────────
+  const handleConvert = () => {
     if (!file) return;
-
-    setIsConverting(true);
+    setStep('converting');
     setProgress(10);
-    setStatusMessage('Starting conversion...');
+    setStatusMsg('Uploading document…');
     setError(null);
-    setResult(null);
+    setErrorIsConfig(false);
 
     const startTime = Date.now();
+    const formData  = new FormData();
+    formData.append('file', file);
 
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
+    const xhr = new XMLHttpRequest();
 
-      const xhr = new XMLHttpRequest();
+    // Upload progress
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) {
+        setProgress(10 + Math.round((e.loaded / e.total) * 30));
+        setStatusMsg('Uploading document…');
+      }
+    });
 
-      xhr.upload.addEventListener('progress', (event) => {
-        if (event.lengthComputable) {
-          const uploadProgress = Math.round((event.loaded / event.total) * 30);
-          setProgress(10 + uploadProgress);
-          setStatusMessage('Uploading document...');
-        }
-      });
+    // Fake conversion progress while waiting for server
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 4000)       { setProgress(45); setStatusMsg('Converting to PDF…'); }
+      else if (elapsed < 10000) { setProgress(65); setStatusMsg('Formatting document…'); }
+      else if (elapsed < 20000) { setProgress(82); setStatusMsg('Finalizing PDF…'); }
+      else                      { setProgress(92); setStatusMsg('Almost done…'); }
+    }, 800);
 
-      xhr.addEventListener('load', () => {
-        setProgress(100);
-        setStatusMessage('Conversion complete!');
+    xhr.addEventListener('load', () => {
+      clearInterval(interval);
+      setProgress(100);
+      setStatusMsg('Done!');
 
-        if (xhr.status === 200) {
-          const blob = new Blob([xhr.response], { type: 'application/pdf' });
-          const url = URL.createObjectURL(blob);
-          const downloadName = file.name.replace(/\.(doc|docx)$/i, '') + '-converted.pdf';
-
-          setResult({ url, downloadName });
-          setIsConverting(false);
-        } else {
-          let errorMsg = 'Conversion failed. Please try again.';
+      if (xhr.status === 200) {
+        const blob = new Blob([xhr.response], { type: 'application/pdf' });
+        setResultBlob(blob);
+        setStep('result');
+      } else {
+        // Parse JSON error
+        const reader = new FileReader();
+        reader.onload = () => {
+          let msg = 'Conversion failed. Please try again.';
+          let isConfig = false;
           try {
-            const reader = new FileReader();
-            reader.onload = function() {
-              try {
-                const errorData = JSON.parse(reader.result);
-                setError(errorData.error || errorMsg);
-              } catch {
-                setError(errorMsg);
-              }
-              setIsConverting(false);
-            };
-            reader.readAsText(xhr.response);
-            return;
-          } catch {
-            errorMsg = `Conversion failed with status ${xhr.status}`;
-          }
-          setError(errorMsg);
-          setIsConverting(false);
-        }
-      });
+            const data = JSON.parse(reader.result);
+            msg = data.error || msg;
+            isConfig = xhr.status === 503 || msg.toLowerCase().includes('libreoffice');
+          } catch { /* use default */ }
+          setError(msg);
+          setErrorIsConfig(isConfig);
+          setStep('error');
+        };
+        reader.readAsText(xhr.response);
+      }
+    });
 
-      xhr.addEventListener('error', () => {
-        setError('Network error. Please check your connection and try again.');
-        setIsConverting(false);
-      });
+    xhr.addEventListener('error', () => {
+      clearInterval(interval);
+      setError('Network error. Please check your connection and try again.');
+      setStep('error');
+    });
 
-      xhr.addEventListener('timeout', () => {
-        setError('Conversion is taking too long. Please try again with a smaller document.');
-        setIsConverting(false);
-      });
+    xhr.addEventListener('timeout', () => {
+      clearInterval(interval);
+      setError('Conversion is taking too long. Please try with a smaller document.');
+      setStep('error');
+    });
 
-      xhr.open('POST', '/api/convert/word-to-pdf');
-      xhr.responseType = 'blob';
-      xhr.timeout = CLIENT_CONVERTER_TIMEOUT_MS;
-      xhr.send(formData);
-
-      const progressInterval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-
-        if (elapsed < 2000) {
-          setStatusMessage('Starting conversion...');
-          setProgress(20);
-        } else if (elapsed < 5000) {
-          setStatusMessage('Converting to PDF...');
-          setProgress(45);
-        } else if (elapsed < 10000) {
-          setStatusMessage('Formatting document...');
-          setProgress(70);
-        } else {
-          setStatusMessage('Finalizing PDF...');
-          setProgress(90);
-        }
-      }, 500);
-
-      setTimeout(() => clearInterval(progressInterval), 60000);
-    } catch (err) {
-      setError(err.message || 'Conversion failed');
-      setIsConverting(false);
-    }
+    xhr.open('POST', '/api/convert/word-to-pdf');
+    xhr.responseType = 'blob';
+    xhr.timeout = 5 * 60 * 1000;
+    xhr.send(formData);
   };
 
-  const handleReset = () => {
-    setFile(null);
-    setResult(null);
-    setError(null);
-    setProgress(0);
-    setStatusMessage('');
+  const handleDownload = () => {
+    if (!resultBlob || !file) return;
+    const url  = URL.createObjectURL(resultBlob);
+    const link = document.createElement('a');
+    link.href  = url;
+    link.download = file.name.replace(/\.(doc|docx)$/i, '') + '-converted.pdf';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  // Tool card content (shared between embedded and standalone)
-  const toolCardContent = (
-    <>
-      {!file ? (
-        <motion.div
-          {...getRootProps()}
-          style={{
-            ...styles.dropzone,
-            ...(isDragActive ? styles.dropzoneActive : {}),
-          }}
-          whileHover={{ scale: 1.005 }}
-          whileTap={{ scale: 0.995 }}
-        >
-          <input {...getInputProps()} />
-          <div style={styles.dropzoneContent}>
-            <motion.div 
-              style={styles.iconWrapper}
-              animate={isDragActive ? { scale: 1.1 } : {}}
-              transition={{ duration: 0.2 }}
-            >
-              <div style={styles.iconCircle}>
-                <FileText size={56} color="white" strokeWidth={1.5} />
-              </div>
-            </motion.div>
-            <h3 style={styles.dropzoneTitle}>
-              {isDragActive ? 'Drop Word file here' : 'Select Word document'}
-            </h3>
-            <p style={styles.dropzoneDesc}>
-              or drop file here
-            </p>
-            <motion.button 
-              style={styles.selectButton} 
-              type="button"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Select Word file
-            </motion.button>
-            <p style={styles.hint}>
-              <span style={styles.hintIcon}>⚡</span>
-              Free to use · Max file size: 50 MB · DOC & DOCX supported
-            </p>
+  const reset = () => {
+    setFile(null); setStep('upload'); setProgress(0);
+    setStatusMsg(''); setError(null); setResultBlob(null);
+    setErrorIsConfig(false);
+  };
+
+  // ── RESULT ────────────────────────────────────────────────────────
+  if (step === 'result') {
+    return (
+      <>
+        <style>{css}</style>
+        <div className="wp-center">
+          <div className="wp-result-card">
+            <CheckCircle size={60} color="#27ae60" />
+            <h3 className="wp-result-title">Converted Successfully!</h3>
+            <p className="wp-result-desc">Your PDF is ready to download.</p>
+            <button className="wp-btn wp-primary wp-big" onClick={handleDownload}>
+              <Download size={20} /> Download PDF File
+            </button>
+            <button className="wp-btn wp-outline" onClick={reset}>
+              <RotateCcw size={16} /> Convert another file
+            </button>
           </div>
-        </motion.div>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          style={styles.filePanel}
-        >
-          <div style={styles.fileInfo}>
-            <div style={styles.fileIconWrapper}>
-              <FileText size={48} color="white" />
-            </div>
-            <div style={styles.fileDetails}>
-              <h4 style={styles.fileName}>{file.name}</h4>
-              <p style={styles.fileSize}>{formatBytes(file.size)}</p>
-              <p style={styles.fileStatus}>✓ Ready to convert</p>
-            </div>
-            <motion.button 
-              style={styles.removeButton} 
-              onClick={handleReset}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <X size={20} />
-            </motion.button>
-          </div>
-
-          {!result ? (
-            <div style={styles.actions}>
-              <motion.button
-                style={{
-                  ...styles.convertButton,
-                  ...(isConverting ? styles.convertButtonDisabled : {}),
-                }}
-                onClick={handleConvert}
-                disabled={isConverting}
-                whileHover={!isConverting ? { scale: 1.02 } : {}}
-                whileTap={!isConverting ? { scale: 0.98 } : {}}
-              >
-                {isConverting ? (
-                  <>
-                    <Loader2 className="spinner" size={20} />
-                    Converting... {progress}%
-                  </>
-                ) : (
-                  <>
-                    <FileText size={20} />
-                    Convert to PDF
-                  </>
-                )}
-              </motion.button>
-              {!isConverting && (
-                <p style={styles.hintText}>
-                  <span style={styles.hintIcon}>⚡</span>
-                  Super fast! Most documents convert in 3-10 seconds.
-                </p>
-              )}
-            </div>
-          ) : (
-            <motion.div 
-              style={styles.success}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4 }}
-            >
-              <div style={styles.successIcon}>
-                <CheckCircle size={64} color="#27ae60" />
-              </div>
-              <h4 style={styles.successTitle}>Conversion Successful!</h4>
-              <p style={styles.successDesc}>Your PDF document is ready for download</p>
-              <motion.a
-                href={result.url}
-                download={result.downloadName}
-                style={styles.downloadButton}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Download size={20} />
-                Download PDF File
-              </motion.a>
-              <motion.button 
-                style={styles.resetButton} 
-                onClick={handleReset}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Convert another file
-              </motion.button>
-            </motion.div>
-          )}
-
-          {isConverting && (
-            <motion.div 
-              style={styles.progressSection}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              <div style={styles.progressBar}>
-                <motion.div
-                  style={styles.progressFill}
-                  initial={{ width: '0%' }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
-              <p style={styles.progressText}>{statusMessage}</p>
-            </motion.div>
-          )}
-
-          {error && (
-            <motion.div 
-              style={styles.errorBox}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <X size={20} color="#e74c3c" />
-              <span>{error}</span>
-            </motion.div>
-          )}
-        </motion.div>
-      )}
-
-      <style jsx>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .spinner {
-          animation: spin 1s linear infinite;
-        }
-      `}</style>
-    </>
-  );
-
-  // Embedded mode: just the tool card content, no wrapper
-  if (embedded) {
-    return toolCardContent;
+        </div>
+      </>
+    );
   }
 
-  // Standalone mode: full page with own header/hero
-  return (
-    <div style={styles.container}>
-      <header style={styles.header}>
-        <button 
-          style={styles.logoButton} 
-          onClick={handleGoHome}
-          title="Go to Home"
-        >
-          <img src="/sababpdf-sunpdf-logo.svg" alt="SababPDF" style={{ width: 48, height: 48, objectFit: 'contain' }} />
-          <span style={styles.logo}>Sabab<span style={{ color: '#e74c3c' }}>PDF</span></span>
-        </button>
-        <nav style={styles.nav}>
-          <a href="/merge-pdf" style={styles.navLink}>Merge PDF</a>
-          <a href="/split-pdf" style={styles.navLink}>Split PDF</a>
-          <a href="/compress-pdf" style={styles.navLink}>Compress</a>
-          <a href="/pdf-to-word" style={styles.navLink}>PDF to Word</a>
-        </nav>
-      </header>
-
-      <section style={styles.hero}>
-        <h1 style={styles.title}>
-          WORD to <span style={styles.highlight}>PDF</span>
-        </h1>
-        <p style={styles.subtitle}>
-          Convert your Word documents to PDF format instantly
-        </p>
-      </section>
-
-      <section style={styles.mainSection}>
-        <div style={styles.uploadCard}>
-          {toolCardContent}
+  // ── ERROR ─────────────────────────────────────────────────────────
+  if (step === 'error') {
+    return (
+      <>
+        <style>{css}</style>
+        <div className="wp-center">
+          <div className="wp-result-card">
+            <AlertCircle size={56} color="#e74c3c" />
+            <h3 className="wp-result-title" style={{ color: '#e74c3c' }}>Conversion Failed</h3>
+            <p className="wp-error-msg">{error}</p>
+            {errorIsConfig && (
+              <div className="wp-install-hint">
+                <strong>🛠 How to fix:</strong> Download &amp; install{' '}
+                <a href="https://www.libreoffice.org/download/" target="_blank" rel="noopener noreferrer">
+                  LibreOffice (free)
+                </a>{' '}
+                on this server, then restart <code>npm run dev</code>.
+              </div>
+            )}
+            <button className="wp-btn wp-primary" onClick={reset}>
+              <RotateCcw size={16} /> Try again
+            </button>
+          </div>
         </div>
-      </section>
-    </div>
+      </>
+    );
+  }
+
+  // ── CONVERTING ────────────────────────────────────────────────────
+  if (step === 'converting') {
+    return (
+      <>
+        <style>{css}</style>
+        <div className="wp-center">
+          <div className="wp-converting-card">
+            <Loader2 size={52} className="wp-spin" color="#e74c3c" />
+            <p className="wp-converting-label">{statusMsg || 'Converting…'}</p>
+            <div className="wp-progress-bar">
+              <div className="wp-progress-fill" style={{ width: `${progress}%` }} />
+            </div>
+            <p className="wp-progress-pct">{progress}%</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // ── UPLOAD ────────────────────────────────────────────────────────
+  return (
+    <>
+      <style>{css}</style>
+      <div className="wp-center">
+        {/* Drop zone */}
+        {!file ? (
+          <div
+            {...getRootProps()}
+            className={`wp-dropzone${isDragActive ? ' wp-drag-active' : ''}`}
+          >
+            <input {...getInputProps()} />
+            <button type="button" className="wp-btn wp-primary wp-big">
+              Select WORD file
+            </button>
+            <p className="wp-drop-text">
+              or <span className="wp-drop-link">drop Word document here</span>
+            </p>
+            <p className="wp-drop-hint">Free to use · Max 50 MB · .doc &amp; .docx</p>
+          </div>
+        ) : (
+          /* File selected panel */
+          <div className="wp-file-panel">
+            <div className="wp-file-card">
+              <div className="wp-file-icon">
+                <FileText size={44} color="white" />
+              </div>
+              <div className="wp-file-details">
+                <p className="wp-file-name">{file.name}</p>
+                <p className="wp-file-size">{formatBytes(file.size)}</p>
+                <span className="wp-file-ready">✓ Ready to convert</span>
+              </div>
+              <button className="wp-remove-btn" onClick={reset} title="Remove file">✕</button>
+            </div>
+
+            <button className="wp-btn wp-primary wp-big wp-convert-btn" onClick={handleConvert}>
+              <FileText size={20} /> Convert to PDF
+            </button>
+            <p className="wp-convert-hint">⚡ Most documents convert in 5–15 seconds</p>
+          </div>
+        )}
+
+        {error && (
+          <p className="wp-error-inline"><AlertCircle size={15} /> {error}</p>
+        )}
+      </div>
+    </>
   );
 }
 
-const styles = {
-  container: {
-    minHeight: '100vh',
-    background: 'var(--page-bg)',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-  },
-  header: {
-    background: 'var(--surface-solid)',
-    borderBottom: '1px solid var(--surface-border)',
-    padding: '0 40px',
-    height: '70px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-    boxShadow: 'var(--card-shadow-soft)',
-  },
-  logoButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '12px 16px',
-    borderRadius: '8px',
-    transition: 'all 0.2s ease',
-  },
-  homeIcon: {
-    color: '#666',
-    transition: 'color 0.2s ease',
-  },
-  logo: {
-    fontSize: '1.6rem',
-    fontWeight: '800',
-    color: 'var(--text-heading)',
-    letterSpacing: '-0.5px',
-  },
-  nav: {
-    display: 'flex',
-    gap: '32px',
-    alignItems: 'center',
-  },
-  navLink: {
-    color: 'var(--text-soft)',
-    textDecoration: 'none',
-    fontWeight: '500',
-    fontSize: '0.95rem',
-    transition: 'color 0.2s ease',
-    padding: '8px 0',
-  },
-  hero: {
-    background: 'var(--surface-solid)',
-    padding: '60px 20px 50px',
-    textAlign: 'center',
-    borderBottom: '1px solid var(--surface-border)',
-  },
-  title: {
-    fontSize: 'clamp(2.8rem, 6vw, 4.5rem)',
-    fontWeight: '900',
-    margin: '0',
-    color: 'var(--text-heading)',
-    letterSpacing: '-0.03em',
-    lineHeight: '1.1',
-  },
-  highlight: {
-    color: '#e74c3c',
-  },
-  subtitle: {
-    fontSize: 'clamp(1.1rem, 2vw, 1.3rem)',
-    color: 'var(--text-soft)',
-    margin: '20px 0 0',
-    fontWeight: '400',
-  },
-  badges: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '40px',
-    marginTop: '32px',
-    flexWrap: 'wrap',
-  },
-  badge: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    color: 'var(--text-soft)',
-    fontSize: '0.95rem',
-    fontWeight: '500',
-  },
-  badgeIcon: {
-    fontSize: '1.1rem',
-  },
-  mainSection: {
-    maxWidth: '1000px',
-    margin: '0 auto',
-    padding: '50px 20px',
-  },
-  uploadCard: {
-    background: 'var(--surface-solid)',
-    borderRadius: '16px',
-    boxShadow: 'var(--card-shadow-soft)',
-    overflow: 'hidden',
-  },
-  dropzone: {
-    border: '2px dashed #d0d5dd',
-    borderRadius: '16px',
-    padding: '80px 40px',
-    textAlign: 'center',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    background: 'var(--surface)',
-    margin: '20px',
-  },
-  dropzoneActive: {
-    borderColor: '#27ae60',
-    background: 'color-mix(in srgb, #27ae60 12%, var(--surface-solid))',
-  },
-  dropzoneContent: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '20px',
-  },
-  iconWrapper: {
-    marginBottom: '8px',
-  },
-  iconCircle: {
-    width: '120px',
-    height: '120px',
-    borderRadius: '50%',
-    background: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 12px 35px rgba(39, 174, 96, 0.35)',
-  },
-  dropzoneTitle: {
-    fontSize: '1.6rem',
-    fontWeight: '700',
-    color: 'var(--text-heading)',
-    margin: '0',
-  },
-  dropzoneDesc: {
-    fontSize: '1rem',
-    color: 'var(--text-soft)',
-    margin: '0',
-  },
-  selectButton: {
-    background: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
-    color: 'white',
-    border: 'none',
-    padding: '18px 48px',
-    borderRadius: '50px',
-    fontSize: '1.1rem',
-    fontWeight: '700',
-    cursor: 'pointer',
-    boxShadow: '0 8px 25px rgba(39, 174, 96, 0.35)',
-    marginTop: '8px',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '10px',
-    transition: 'all 0.3s ease',
-  },
-  hint: {
-    fontSize: '0.9rem',
-    color: 'var(--text-soft)',
-    margin: '8px 0 0',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-  },
-  hintIcon: {
-    color: '#e74c3c',
-  },
-  filePanel: {
-    padding: '30px',
-  },
-  fileInfo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '24px',
-    padding: '24px',
-    background: 'var(--surface)',
-    borderRadius: '12px',
-    marginBottom: '30px',
-  },
-  fileIconWrapper: {
-    width: '80px',
-    height: '100px',
-    borderRadius: '12px',
-    background: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: '0',
-    boxShadow: '0 4px 12px rgba(39, 174, 96, 0.25)',
-  },
-  fileDetails: {
-    flex: '1',
-    minWidth: '0',
-  },
-  fileName: {
-    fontSize: '1.2rem',
-    fontWeight: '600',
-    color: 'var(--text-heading)',
-    margin: '0 0 8px 0',
-    wordBreak: 'break-word',
-  },
-  fileSize: {
-    fontSize: '0.95rem',
-    color: 'var(--text-soft)',
-    margin: '0 0 4px 0',
-  },
-  fileStatus: {
-    fontSize: '0.9rem',
-    color: '#27ae60',
-    margin: '0',
-    fontWeight: '600',
-  },
-  removeButton: {
-    background: '#fee',
-    color: '#e74c3c',
-    border: 'none',
-    width: '44px',
-    height: '44px',
-    borderRadius: '10px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'all 0.2s ease',
-  },
-  actions: {
-    textAlign: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '16px',
-  },
-  convertButton: {
-    background: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
-    color: 'white',
-    border: 'none',
-    padding: '20px 64px',
-    borderRadius: '50px',
-    fontSize: '1.2rem',
-    fontWeight: '700',
-    cursor: 'pointer',
-    boxShadow: '0 8px 25px rgba(39, 174, 96, 0.35)',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '10px',
-    transition: 'all 0.3s ease',
-  },
-  convertButtonDisabled: {
-    opacity: '0.7',
-    cursor: 'not-allowed',
-  },
-  hintText: {
-    fontSize: '0.9rem',
-    color: 'var(--text-soft)',
-    margin: '0',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-  },
-  success: {
-    textAlign: 'center',
-    padding: '40px 20px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '20px',
-  },
-  successIcon: {
-    marginBottom: '8px',
-  },
-  successTitle: {
-    fontSize: '1.6rem',
-    fontWeight: '700',
-    color: 'var(--text-heading)',
-    margin: '0',
-  },
-  successDesc: {
-    fontSize: '1rem',
-    color: 'var(--text-soft)',
-    margin: '0',
-  },
-  downloadButton: {
-    background: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
-    color: 'white',
-    textDecoration: 'none',
-    padding: '18px 48px',
-    borderRadius: '50px',
-    fontSize: '1.1rem',
-    fontWeight: '700',
-    boxShadow: '0 8px 25px rgba(39, 174, 96, 0.35)',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '10px',
-    marginTop: '8px',
-    transition: 'all 0.3s ease',
-  },
-  resetButton: {
-    background: 'transparent',
-    color: 'var(--text-soft)',
-    border: '2px solid var(--surface-border)',
-    padding: '14px 36px',
-    borderRadius: '50px',
-    fontSize: '1rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-    marginTop: '8px',
-    transition: 'all 0.3s ease',
-  },
-  progressSection: {
-    marginTop: '30px',
-  },
-  progressBar: {
-    width: '100%',
-    height: '8px',
-    background: 'var(--surface-border)',
-    borderRadius: '4px',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    background: 'linear-gradient(90deg, #27ae60 0%, #2ecc71 100%)',
-    borderRadius: '4px',
-  },
-  progressText: {
-    textAlign: 'center',
-    fontSize: '0.95rem',
-    color: 'var(--text-soft)',
-    marginTop: '12px',
-  },
-  errorBox: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    padding: '16px 20px',
-    background: 'color-mix(in srgb, #ef4444 12%, var(--surface-solid))',
-    border: '1px solid #fcc',
-    borderRadius: '10px',
-    color: '#e74c3c',
-    fontSize: '0.95rem',
-    marginTop: '20px',
-  },
-};
+const css = `
+* { box-sizing: border-box; }
+
+.wp-center { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 380px; padding: 40px 20px; gap: 20px; }
+
+/* Buttons */
+.wp-btn { border: none; border-radius: 10px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; font-family: inherit; }
+.wp-primary { background: linear-gradient(135deg, #e74c3c, #c0392b); color: #fff; box-shadow: 0 4px 16px rgba(231,76,60,.3); }
+.wp-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(231,76,60,.4); }
+.wp-outline { background: #fff; color: #374151; border: 1.5px solid #d1d5db; }
+.wp-outline:hover { border-color: #e74c3c; color: #e74c3c; }
+.wp-big { padding: 18px 56px; font-size: 1.15rem; border-radius: 12px; }
+
+/* Drop zone */
+.wp-dropzone { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 48px 60px; cursor: pointer; border-radius: 16px; transition: background 0.2s; }
+.wp-drag-active { background: rgba(231,76,60,0.06); }
+.wp-drop-text { font-size: 0.95rem; color: #6b7280; margin: 0; }
+.wp-drop-link { color: #e74c3c; text-decoration: underline; text-underline-offset: 2px; }
+.wp-drop-hint { font-size: 0.82rem; color: #9ca3af; margin: 0; }
+
+/* File panel */
+.wp-file-panel { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; max-width: 560px; }
+.wp-file-card { display: flex; align-items: center; gap: 20px; background: #f9fafb; border: 1.5px solid #e5e7eb; border-radius: 14px; padding: 20px 24px; width: 100%; }
+.wp-file-icon { width: 72px; height: 90px; background: linear-gradient(135deg,#e74c3c,#f97316); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(231,76,60,.22); }
+.wp-file-details { flex: 1; min-width: 0; }
+.wp-file-name { font-size: 1rem; font-weight: 600; color: #1a1a2e; margin: 0 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wp-file-size { font-size: 0.85rem; color: #6b7280; margin: 0 0 6px; }
+.wp-file-ready { font-size: 0.82rem; font-weight: 700; color: #27ae60; background: #f0fdf4; padding: 3px 10px; border-radius: 20px; border: 1px solid #bbf7d0; }
+.wp-remove-btn { background: #fef2f2; border: none; color: #e74c3c; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
+.wp-remove-btn:hover { background: #fee2e2; }
+.wp-convert-btn { width: 100%; max-width: 380px; padding: 18px; border-radius: 12px; }
+.wp-convert-hint { font-size: 0.87rem; color: #6b7280; margin: 0; }
+
+/* Converting */
+.wp-converting-card { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.wp-spin { animation: wpSpin 1s linear infinite; }
+@keyframes wpSpin { 100% { transform: rotate(360deg); } }
+.wp-converting-label { font-size: 1.05rem; font-weight: 600; color: #374151; margin: 0; }
+.wp-progress-bar { width: 320px; height: 8px; background: #f3f4f6; border-radius: 4px; overflow: hidden; }
+.wp-progress-fill { height: 100%; background: linear-gradient(90deg,#e74c3c,#f97316); border-radius: 4px; transition: width 0.4s ease; }
+.wp-progress-pct { font-size: 0.88rem; color: #9ca3af; margin: 0; font-weight: 600; }
+
+/* Result card */
+.wp-result-card { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+.wp-result-title { font-size: 1.8rem; font-weight: 800; color: #1a1a2e; margin: 0; }
+.wp-result-desc  { font-size: 1rem; color: #6b7280; margin: 0; }
+
+/* Error */
+.wp-error-msg { font-size: 0.95rem; color: #374151; max-width: 420px; text-align: center; margin: 0; line-height: 1.6; }
+.wp-install-hint { background: #fef9c3; border: 1px solid #fde047; border-radius: 10px; padding: 14px 18px; font-size: 0.87rem; color: #713f12; max-width: 440px; text-align: left; line-height: 1.6; }
+.wp-install-hint a { color: #e74c3c; font-weight: 700; }
+.wp-install-hint code { background: #fff; padding: 1px 5px; border-radius: 4px; font-size: 0.83rem; }
+.wp-error-inline { display: inline-flex; align-items: center; gap: 6px; color: #dc2626; font-size: 0.9rem; margin: 0; }
+`;

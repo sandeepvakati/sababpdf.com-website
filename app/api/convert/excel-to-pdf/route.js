@@ -3,7 +3,7 @@ import { spawn } from 'child_process';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
-import { access, mkdir, readFile, rm, stat, writeFile } from 'fs/promises';
+import { mkdir, readFile, readdir, rm, stat, writeFile } from 'fs/promises';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 const PDF_MIME = 'application/pdf';
 const WORK_ROOT = path.join(os.tmpdir(), 'sababpdf-excel-to-pdf');
 
-// Find LibreOffice binary
+// ─── Find LibreOffice binary ───
 function findLibreOfficeBin() {
   if (process.env.LIBREOFFICE_BIN) return process.env.LIBREOFFICE_BIN;
 
@@ -20,8 +20,8 @@ function findLibreOfficeBin() {
       'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
       'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
     ];
-    for (const candidate of candidates) {
-      if (fs.existsSync(candidate)) return `"${candidate}"`;
+    for (const c of candidates) {
+      if (fs.existsSync(c)) return c;
     }
     return 'soffice';
   }
@@ -32,8 +32,8 @@ function findLibreOfficeBin() {
     '/usr/bin/libreoffice25.8',
     '/usr/bin/soffice',
   ];
-  for (const candidate of linuxCandidates) {
-    if (fs.existsSync(candidate)) return candidate;
+  for (const c of linuxCandidates) {
+    if (fs.existsSync(c)) return c;
   }
   return 'libreoffice';
 }
@@ -58,58 +58,88 @@ function buildJsonResponse(message, status) {
   return Response.json({ error: message }, { status });
 }
 
+/**
+ * Convert a Windows/POSIX path to a proper file:/// URL for LibreOffice.
+ * Handles drive letters and spaces correctly.
+ */
+function pathToFileUrl(filePath) {
+  // Normalize to forward slashes
+  let normalized = filePath.replace(/\\/g, '/');
+  // On Windows, ensure the path starts with /
+  if (process.platform === 'win32' && /^[A-Za-z]:/.test(normalized)) {
+    normalized = '/' + normalized;
+  }
+  // Encode spaces and special characters (but not slashes or colons)
+  normalized = normalized.replace(/ /g, '%20');
+  return `file://${normalized}`;
+}
+
+// ─── Run LibreOffice using spawn for better error handling ───
 function runLibreOffice(inputPath, outputDir) {
-  return new Promise((resolve, reject) => {
-    // ✅ Use calc_pdf_Export filter for Excel files + norestore for stability
+  return new Promise((resolve) => {
+    // Create a private user-profile dir so LibreOffice doesn't collide
+    // with any running desktop instance on the same machine.
+    const profileDir = path.join(outputDir, '.libreoffice-profile');
+    const profileUrl = pathToFileUrl(profileDir);
+
     const args = [
+      `-env:UserInstallation=${profileUrl}`,
       '--headless',
       '--norestore',
-      '--convert-to', 'pdf:calc_pdf_Export',
+      '--nolockcheck',
+      '--convert-to', 'pdf',
       '--outdir', outputDir,
-      inputPath
+      inputPath,
     ];
 
-    // On Windows the binary may be a quoted path, so use shell mode
-    const useShell = process.platform === 'win32';
-
-    const child = spawn(LIBREOFFICE_BIN, args, {
-      stdio: ['ignore', 'pipe', 'pipe'],
-      windowsHide: true,
-      shell: useShell,
-      // ✅ Add env vars to help LibreOffice run in headless mode
-      env: {
-        ...process.env,
-        HOME: os.tmpdir(),
-        TMPDIR: os.tmpdir(),
-        USERPROFILE: os.tmpdir(),
-      },
-    });
+    console.log('[Excel-to-PDF] Running:', LIBREOFFICE_BIN);
+    console.log('[Excel-to-PDF] Args:', args.join(' '));
 
     let stdout = '';
     let stderr = '';
     let timedOut = false;
 
+    const child = spawn(LIBREOFFICE_BIN, args, {
+      windowsHide: true,
+      env: { ...process.env },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    child.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    // Timeout handler
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill('SIGTERM');
+      child.kill('SIGKILL');
     }, CONVERTER_TIMEOUT_MS);
-
-    child.stdout.on('data', (chunk) => {
-      stdout += chunk.toString();
-    });
-
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
-    });
 
     child.on('error', (error) => {
       clearTimeout(timer);
-      reject(error);
+      console.error('[Excel-to-PDF] Spawn error:', error.message);
+      resolve({
+        code: -1,
+        stdout: stdout.trim(),
+        stderr: `Spawn error: ${error.message}`,
+        timedOut: false,
+        spawnError: true,
+      });
     });
 
     child.on('close', (code) => {
       clearTimeout(timer);
-      resolve({ code, stdout: stdout.trim(), stderr: stderr.trim(), timedOut });
+      resolve({
+        code: timedOut ? -1 : (code ?? 1),
+        stdout: stdout.trim(),
+        stderr: stderr.trim(),
+        timedOut,
+        spawnError: false,
+      });
     });
   });
 }
@@ -126,18 +156,21 @@ export async function POST(request) {
     }
 
     const fileName = file.name || 'spreadsheet.xlsx';
-    const validExts = ['.xls', '.xlsx'];
+    const validExts = ['.xls', '.xlsx', '.csv', '.ods'];
     const fileExt = '.' + fileName.split('.').pop().toLowerCase();
     if (!validExts.includes(fileExt)) {
-      return buildJsonResponse('Please upload an Excel file (.xls or .xlsx).', 400);
+      return buildJsonResponse('Please upload an Excel file (.xls, .xlsx, .csv, or .ods).', 400);
     }
 
     await mkdir(workDir, { recursive: true });
 
-    const inputPath = path.join(workDir, `${randomUUID()}${fileExt}`);
+    // Use a simple alphanumeric name to avoid any path issues
+    const safeInputName = `input${fileExt}`;
+    const inputPath = path.join(workDir, safeInputName);
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-
     await writeFile(inputPath, fileBuffer);
+
+    console.log('[Excel-to-PDF] Input file written:', inputPath, `(${fileBuffer.length} bytes)`);
 
     // Run LibreOffice conversion
     let result;
@@ -151,6 +184,14 @@ export async function POST(request) {
       );
     }
 
+    // Check for spawn errors (binary not found)
+    if (result.spawnError) {
+      return buildJsonResponse(
+        'LibreOffice is not installed or could not be found. Please install LibreOffice to use this feature.',
+        500,
+      );
+    }
+
     if (result.timedOut) {
       return buildJsonResponse(
         'Excel to PDF conversion timed out. Please try a smaller spreadsheet.',
@@ -158,14 +199,31 @@ export async function POST(request) {
       );
     }
 
-    // Find the output PDF – LibreOffice uses the input basename with .pdf extension
-    const inputBaseName = path.basename(inputPath, fileExt);
-    const outputPath = path.join(workDir, `${inputBaseName}.pdf`);
-
+    // Find the output PDF – look for any .pdf in the work directory
+    let outputPath = null;
     let outputStats = null;
+
     try {
-      outputStats = await stat(outputPath);
-    } catch {
+      const dirFiles = await readdir(workDir);
+      console.log('[Excel-to-PDF] Work dir contents after conversion:', dirFiles);
+
+      // First try the expected name (input.pdf)
+      const expectedName = safeInputName.replace(/\.[^.]+$/, '.pdf');
+      if (dirFiles.includes(expectedName)) {
+        outputPath = path.join(workDir, expectedName);
+        outputStats = await stat(outputPath);
+      }
+
+      // If not found, scan for any .pdf file
+      if (!outputStats || outputStats.size === 0) {
+        const pdfFile = dirFiles.find((f) => f.toLowerCase().endsWith('.pdf'));
+        if (pdfFile) {
+          outputPath = path.join(workDir, pdfFile);
+          outputStats = await stat(outputPath);
+        }
+      }
+    } catch (scanError) {
+      console.error('[Excel-to-PDF] Error scanning output dir:', scanError.message);
       outputStats = null;
     }
 
@@ -181,16 +239,22 @@ export async function POST(request) {
         userMessage = 'Permission error during conversion. Please try again.';
       } else if (/source file could not be loaded|general input\/output error/i.test(errorDetail)) {
         userMessage = 'LibreOffice could not open this spreadsheet. Re-save it as .xlsx and try again.';
+      } else if (/locked|lock file/i.test(errorDetail)) {
+        userMessage = 'LibreOffice detected a lock conflict. Please try again in a moment.';
       }
 
       console.error('[Excel-to-PDF] Conversion error:', errorDetail);
+      console.error('[Excel-to-PDF] Exit code:', result.code);
       console.error('[Excel-to-PDF] LibreOffice stdout:', result.stdout);
       console.error('[Excel-to-PDF] LibreOffice stderr:', result.stderr);
+
       return buildJsonResponse(userMessage, 500);
     }
 
     const outputBytes = await readFile(outputPath);
     const downloadName = `${sanitizeBaseName(fileName)}.pdf`;
+
+    console.log('[Excel-to-PDF] Conversion successful. Output size:', outputBytes.length, 'bytes');
 
     return new Response(new Uint8Array(outputBytes), {
       status: 200,

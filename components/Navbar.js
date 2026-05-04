@@ -50,7 +50,7 @@ export default function Navbar() {
     >
       <div className="page-shell nav-inner">
         <Link href="/" className="brand-link" onClick={() => setShowToolsMenu(false)}>
-          <BrandLogo />
+          <BrandLogo size={84} />
         </Link>
 
         <nav className="nav-links">
@@ -127,7 +127,7 @@ export default function Navbar() {
 
                 {searchQuery.length > 1 && !filteredTools.length ? (
                   <p className="helper-text" style={{ padding: '8px 4px 0' }}>
-                    No tools found for "{searchQuery}".
+                    No tools found for &quot;{searchQuery}&quot;.
                   </p>
                 ) : null}
               </div>

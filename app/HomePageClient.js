@@ -83,7 +83,7 @@ export default function HomePageClient() {
             </p>
             <div className="no-login-stats">
               <div className="stat-item">
-                <strong>29+</strong>
+                <strong>{ALL_TOOLS.length}</strong>
                 <span>PDF Tools</span>
               </div>
               <div className="stat-item">
@@ -121,7 +121,7 @@ export default function HomePageClient() {
             <WhyChooseCard
               icon="🔒"
               title="Secure & Private"
-              description="Files stay in your browser. Nothing is uploaded to external servers."
+              description="Browser tools stay local, and server conversions are deleted automatically after processing."
               color="#10b981"
             />
             <WhyChooseCard

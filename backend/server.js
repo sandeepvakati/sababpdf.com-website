@@ -14,7 +14,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
 const fs = require('fs');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
@@ -22,8 +22,11 @@ const PORT = process.env.PORT || 5000;
 const logger = console;
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 const OUTPUT_DIR = path.join(__dirname, 'outputs');
-const LIBREOFFICE_BIN =
-  process.env.LIBREOFFICE_BIN || (process.platform === 'win32' ? 'soffice' : 'libreoffice');
+const DEFAULT_LIBREOFFICE_BIN = process.platform === 'win32'
+  ? 'soffice'
+  : ['/usr/bin/libreoffice', '/usr/bin/libreoffice26.2', '/usr/bin/libreoffice25.8']
+      .find((candidate) => fs.existsSync(candidate)) || 'libreoffice';
+const LIBREOFFICE_BIN = process.env.LIBREOFFICE_BIN || DEFAULT_LIBREOFFICE_BIN;
 const PYTHON_BIN = process.env.PYTHON_BIN || (process.platform === 'win32' ? 'python' : 'python3');
 
 // Progress tracking system
@@ -109,12 +112,30 @@ function cleanup(...files) {
   files.forEach(f => { try { if (f && fs.existsSync(f)) fs.unlinkSync(f); } catch {} });
 }
 
+function formatLibreOfficeError(err, stderr = '') {
+  const details = `${stderr || ''}\n${err?.message || ''}`.trim();
+
+  if (err?.killed) {
+    return 'LibreOffice conversion timed out. Please try a smaller or simpler file.';
+  }
+
+  if (err?.code === 127 || /command not found|not found/i.test(details)) {
+    return 'LibreOffice is not installed on the server. Install it with: sudo dnf install libreoffice -y';
+  }
+
+  if (/source file could not be loaded|general input\/output error/i.test(details)) {
+    return 'LibreOffice could not open this spreadsheet. Re-save it as .xlsx and try again.';
+  }
+
+  return `LibreOffice error: ${details || 'Unknown conversion failure.'}`;
+}
+
 // ===== LibreOffice conversion =====
 function libreofficeConvert(inputPath, outputDir) {
   return new Promise((resolve, reject) => {
     const cmd = `"${LIBREOFFICE_BIN}" --headless --convert-to pdf --outdir "${outputDir}" "${inputPath}"`;
     exec(cmd, { timeout: 60000 }, (err, stdout, stderr) => {
-      if (err) return reject(new Error(`LibreOffice error: ${stderr || err.message}`));
+      if (err) return reject(new Error(formatLibreOfficeError(err, stderr)));
       resolve(stdout);
     });
   });
@@ -183,6 +204,7 @@ app.post('/api/convert/excel-to-pdf', upload.single('file'), async (req, res) =>
   const tracker = createProgressTracker(conversionId);
   const inputPath = req.file.path;
   const baseName = path.basename(inputPath, path.extname(inputPath));
+  const downloadName = `${path.basename(req.file.originalname, path.extname(req.file.originalname))}.pdf`;
 
   try {
     updateProgress(conversionId, 10, 'Preparing conversion');
@@ -191,10 +213,15 @@ app.post('/api/convert/excel-to-pdf', upload.single('file'), async (req, res) =>
     updateProgress(conversionId, 80, 'Finalizing');
     
     const outputPath = path.join(OUTPUT_DIR, `${baseName}.pdf`);
+
+    if (!fs.existsSync(outputPath)) {
+      throw new Error('Conversion failed - output PDF was not created');
+    }
+
     updateProgress(conversionId, 100, 'Complete');
     
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename="spreadsheet.pdf"');
+    res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
     res.setHeader('X-Conversion-ID', conversionId);
     const stream = fs.createReadStream(outputPath);
     stream.pipe(res);
@@ -439,23 +466,176 @@ app.post('/api/convert/pdf-to-excel', upload.single('file'), async (req, res) =>
   const tracker = createProgressTracker(conversionId);
   const inputPath = req.file.path;
   const outputPath = path.join(OUTPUT_DIR, `${uuidv4()}.xlsx`);
+  const downloadName = `${path.basename(req.file.originalname, path.extname(req.file.originalname))}.xlsx`;
 
   updateProgress(conversionId, 5, 'Extracting tables');
 
-  const cmd = `"${PYTHON_BIN}" -c "import tabula; tabula.convert_into('${inputPath}', '${outputPath}', output_format='xlsx', pages='all')"`;
+  const pythonCode = `
+import importlib.util
+import shutil
+import sys
 
-  exec(cmd, { timeout: 60000 }, (err) => {
-    if (err || !fs.existsSync(outputPath)) {
+input_path = sys.argv[1]
+output_path = sys.argv[2]
+
+if importlib.util.find_spec("pandas") is None:
+    sys.stderr.write("pandas is not installed on the server. Install it with: pip install pandas openpyxl\\n")
+    sys.exit(6)
+
+import pandas as pd
+
+usable_tables = []
+tabula_error = ""
+pdfplumber_error = ""
+
+def add_dataframe_tables(candidate_tables):
+    if candidate_tables is None:
+        return
+    if hasattr(candidate_tables, "empty"):
+        candidate_tables = [candidate_tables]
+    for table in candidate_tables:
+        if table is None or getattr(table, "empty", False):
+            continue
+        if getattr(table, "shape", (0, 0))[0] == 0 or getattr(table, "shape", (0, 0))[1] == 0:
+            continue
+        usable_tables.append({"kind": "dataframe", "value": table.copy()})
+
+def normalize_rows(rows):
+    cleaned_rows = []
+    width = 0
+    for row in rows or []:
+        if row is None:
+            continue
+        normalized = []
+        for cell in row:
+            if cell is None:
+                normalized.append("")
+            elif isinstance(cell, str):
+                normalized.append(cell.strip())
+            else:
+                normalized.append(cell)
+        if any(cell not in ("", None) for cell in normalized):
+            cleaned_rows.append(normalized)
+            width = max(width, len(normalized))
+    if not cleaned_rows or width == 0:
+        return None
+    return [row + [""] * (width - len(row)) for row in cleaned_rows]
+
+tabula_spec = importlib.util.find_spec("tabula")
+if tabula_spec is not None and shutil.which("java") is not None:
+    import tabula
+
+    for options in (
+        {"pages": "all", "multiple_tables": True, "lattice": True},
+        {"pages": "all", "multiple_tables": True, "stream": True},
+        {"pages": "all", "multiple_tables": True, "stream": True, "guess": False},
+    ):
+        try:
+            add_dataframe_tables(tabula.read_pdf(input_path, **options))
+            if usable_tables:
+                break
+        except Exception as exc:
+            tabula_error = str(exc)
+elif tabula_spec is None:
+    tabula_error = "tabula-py is not installed."
+else:
+    tabula_error = "Java is not installed."
+
+pdfplumber_spec = importlib.util.find_spec("pdfplumber")
+if not usable_tables and pdfplumber_spec is not None:
+    import pdfplumber
+
+    extraction_settings = [
+        None,
+        {"vertical_strategy": "lines", "horizontal_strategy": "lines", "intersection_tolerance": 5},
+        {"vertical_strategy": "text", "horizontal_strategy": "text", "snap_tolerance": 3, "join_tolerance": 3},
+    ]
+
+    try:
+        with pdfplumber.open(input_path) as pdf:
+            for settings in extraction_settings:
+                row_tables = []
+                for page in pdf.pages:
+                    tables = page.extract_tables(table_settings=settings) if settings else page.extract_tables()
+                    for raw_table in tables or []:
+                        normalized_rows = normalize_rows(raw_table)
+                        if normalized_rows:
+                            row_tables.append(normalized_rows)
+                if row_tables:
+                    usable_tables.extend({"kind": "rows", "value": rows} for rows in row_tables)
+                    break
+    except Exception as exc:
+        pdfplumber_error = str(exc)
+elif pdfplumber_spec is None:
+    pdfplumber_error = "pdfplumber is not installed."
+
+if not usable_tables:
+    details = " ".join(
+        part for part in (
+            f"tabula: {tabula_error}" if tabula_error else "",
+            f"pdfplumber: {pdfplumber_error}" if pdfplumber_error else "",
+        ) if part
+    ).strip()
+    if details:
+        sys.stderr.write(f"No tables were detected in this PDF. {details}")
+    else:
+        sys.stderr.write("No tables were detected in this PDF.")
+    sys.exit(5)
+
+try:
+    with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
+        for index, table in enumerate(usable_tables, start=1):
+            sheet_name = f"Table {index}"[:31]
+            if table["kind"] == "dataframe":
+                table["value"].to_excel(writer, sheet_name=sheet_name, index=False)
+            else:
+                pd.DataFrame(table["value"]).to_excel(writer, sheet_name=sheet_name, index=False, header=False)
+except Exception as exc:
+    sys.stderr.write(str(exc))
+    sys.exit(4)
+`;
+
+  const child = spawn(PYTHON_BIN, ['-c', pythonCode, inputPath, outputPath], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+  });
+
+  let stdout = '';
+  let stderr = '';
+  let timedOut = false;
+
+  const timer = setTimeout(() => {
+    timedOut = true;
+    child.kill('SIGTERM');
+  }, 60000);
+
+  child.stdout.on('data', (chunk) => {
+    stdout += chunk.toString();
+  });
+
+  child.stderr.on('data', (chunk) => {
+    stderr += chunk.toString();
+  });
+
+  child.on('close', (code) => {
+    clearTimeout(timer);
+
+    if (timedOut || code !== 0 || !fs.existsSync(outputPath)) {
       cleanup(inputPath, outputPath);
       updateProgress(conversionId, 0, 'PDF to Excel conversion failed');
       clearProgress(conversionId);
-      return res.status(500).json({ error: 'PDF to Excel requires tabula-py. Install: pip install tabula-py', conversionId });
+
+      const errorMessage = timedOut
+        ? 'PDF to Excel conversion timed out. Try a smaller PDF or one with fewer tables.'
+        : stderr.trim() || stdout.trim() || 'PDF to Excel conversion failed on the server.';
+
+      return res.status(500).json({ error: errorMessage, conversionId });
     }
     
     updateProgress(conversionId, 95, 'Finalizing spreadsheet');
     
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="converted.xlsx"');
+    res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
     const stream = fs.createReadStream(outputPath);
     stream.pipe(res);
     stream.on('end', () => {
@@ -463,6 +643,20 @@ app.post('/api/convert/pdf-to-excel', upload.single('file'), async (req, res) =>
       cleanup(inputPath, outputPath);
       clearProgress(conversionId);
     });
+    stream.on('error', () => {
+      cleanup(inputPath, outputPath);
+      clearProgress(conversionId);
+    });
+  });
+
+  child.on('error', (err) => {
+    clearTimeout(timer);
+    cleanup(inputPath, outputPath);
+    updateProgress(conversionId, 0, `Error: ${err.message}`);
+    clearProgress(conversionId);
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message, conversionId });
+    }
   });
 });
 

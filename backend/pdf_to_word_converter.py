@@ -851,7 +851,7 @@ def _set_compact_cell_formatting(cell) -> None:
     
     # FIX: Set cell vertical alignment to top for better text positioning
     try:
-        cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.TOP
+        from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
     except Exception:
         pass
     

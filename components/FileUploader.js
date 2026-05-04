@@ -1,11 +1,48 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import { useDropzone } from 'react-dropzone';
 import { formatBytes, getPdfPreviewData } from '../lib/pdfUtils';
 
 /**
  * FileUploader — iLovePDF-style upload component.
+ * Uses react-dropzone for reliable drag-and-drop across all browsers.
  * Shows a big red CTA button as the primary action, with "or drop files here" below.
  */
+
+// Map file extensions to MIME types for react-dropzone
+const EXT_TO_MIME = {
+  '.pdf': { 'application/pdf': ['.pdf'] },
+  '.doc': { 'application/msword': ['.doc'] },
+  '.docx': { 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'] },
+  '.xls': { 'application/vnd.ms-excel': ['.xls'] },
+  '.xlsx': { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
+  '.csv': { 'text/csv': ['.csv'] },
+  '.ods': { 'application/vnd.oasis.opendocument.spreadsheet': ['.ods'] },
+  '.ppt': { 'application/vnd.ms-powerpoint': ['.ppt'] },
+  '.pptx': { 'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'] },
+  '.html': { 'text/html': ['.html', '.htm'] },
+  '.htm': { 'text/html': ['.html', '.htm'] },
+  '.jpg': { 'image/jpeg': ['.jpg', '.jpeg'] },
+  '.jpeg': { 'image/jpeg': ['.jpg', '.jpeg'] },
+  '.jfif': { 'image/jpeg': ['.jpg', '.jpeg', '.jfif'] },
+  '.png': { 'image/png': ['.png'] },
+  '.webp': { 'image/webp': ['.webp'] },
+  '.svg': { 'image/svg+xml': ['.svg'] },
+};
+
+function buildAcceptObj(acceptStr) {
+  const merged = {};
+  const exts = acceptStr.split(',').map(e => e.trim().toLowerCase());
+  for (const ext of exts) {
+    if (ext === '*') return undefined; // accept everything
+    const mimeMap = EXT_TO_MIME[ext];
+    if (mimeMap) {
+      Object.assign(merged, mimeMap);
+    }
+  }
+  return Object.keys(merged).length > 0 ? merged : undefined;
+}
+
 export default function FileUploader({
   onFiles,
   accept = '.pdf',
@@ -17,8 +54,8 @@ export default function FileUploader({
   showUploadHint = false,
   uploadHintText = 'Add files here',
   capture = undefined,
+  variant = 'default',
 }) {
-  const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
 
   // Build the file type label for the button
@@ -48,72 +85,63 @@ export default function FileUploader({
     if (accept.includes('.html')) return 'or drop HTML files here';
     if (accept.includes('.svg')) return 'or drop SVG files here';
     if (accept.includes('.jpg') || accept.includes('.png')) return 'or drop images here';
-    return 'or drop PDF files here';
+    return multiple ? 'or drop PDF files here' : 'or drop PDF here';
   })();
 
-  const validate = useCallback((files) => {
+  const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
     setError('');
-    const filtered = [];
-    for (const file of Array.from(files)) {
-      const ext = '.' + file.name.split('.').pop().toLowerCase();
-      const acceptExts = accept.split(',').map((a) => a.trim().toLowerCase());
-      if (!acceptExts.includes(ext) && !acceptExts.includes('*')) {
-        if (ext === '.pdf' && acceptExts.includes('.doc')) {
+    if (rejectedFiles && rejectedFiles.length > 0) {
+      const first = rejectedFiles[0];
+      const code = first.errors?.[0]?.code;
+      if (code === 'too-many-files') {
+        setError(multiple ? 'Please add fewer files in one drop.' : 'Please add only one file at a time.');
+      } else if (code === 'file-too-large') {
+        setError(`${first.file.name} exceeds ${maxSizeMB}MB limit.`);
+      } else if (code === 'file-invalid-type') {
+        const ext = '.' + (first.file.name || '').split('.').pop().toLowerCase();
+        if (ext === '.pdf' && accept.includes('.doc')) {
           setError(`You're trying to convert a PDF to Word. Please use the PDF to Word tool instead! Click "All Tools" → "PDF to Word" under "Convert from PDF" section.`);
         } else {
-          setError(`Invalid file type: ${file.name}. Accepted: ${accept}`);
+          setError(`Invalid file type: ${first.file.name}. Accepted: ${accept}`);
         }
-        continue;
+      } else {
+        setError(`Could not add ${first.file.name}. Please try again.`);
       }
-      if (file.size > maxSizeMB * 1024 * 1024) {
-        setError(`${file.name} exceeds ${maxSizeMB}MB limit.`);
-        continue;
-      }
-      filtered.push(file);
+      return;
     }
-    if (filtered.length) {
-      onFiles(multiple ? filtered : [filtered[0]]);
+    if (acceptedFiles.length > 0) {
+      onFiles(multiple ? acceptedFiles : [acceptedFiles[0]]);
     }
   }, [accept, maxSizeMB, multiple, onFiles]);
 
-  const onDrop = useCallback((e) => {
-    e.preventDefault();
-    setDragging(false);
-    validate(e.dataTransfer.files);
-  }, [validate]);
-
-  const onDragOver = (e) => { e.preventDefault(); setDragging(true); };
-  const onDragLeave = () => setDragging(false);
-
-  const onInputChange = (e) => {
-    if (e.target.files?.length) validate(e.target.files);
-    e.target.value = '';
-  };
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: buildAcceptObj(accept),
+    multiple,
+    maxSize: maxSizeMB * 1024 * 1024,
+    maxFiles: multiple ? 0 : 1,
+    noClick: false,
+    noKeyboard: false,
+  });
+  const inputProps = capture ? getInputProps({ capture }) : getInputProps();
 
   return (
     <div className="ilp-uploader-wrapper">
-      <label
-        onDrop={onDrop}
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-        className={`ilp-uploader${dragging ? ' ilp-uploader-dragging' : ''}`}
+      <div
+        {...getRootProps()}
+        className={`ilp-uploader ilp-uploader-${variant}${isDragActive ? ' ilp-uploader-dragging' : ''}`}
       >
-        <input
-          type="file"
-          accept={accept}
-          capture={capture}
-          multiple={multiple}
-          onChange={onInputChange}
-          style={{ display: 'none' }}
-        />
+        <input {...inputProps} />
 
         {/* Big Red CTA Button */}
         <div className="ilp-cta-button">
-          {buttonText}
+          {isDragActive ? `Drop ${fileTypeLabel} file here` : buttonText}
         </div>
 
         {/* Drop text */}
-        <p className="ilp-drop-text">{dropText}</p>
+        <p className="ilp-drop-text">
+          {isDragActive ? 'Release to upload your file' : dropText}
+        </p>
 
         {/* File info */}
         {multiple && currentCount > 0 && (
@@ -121,7 +149,7 @@ export default function FileUploader({
             {currentCount} file{currentCount === 1 ? '' : 's'} already added
           </p>
         )}
-      </label>
+      </div>
 
       {error && (
         <div className="ilp-uploader-error">
@@ -254,6 +282,7 @@ export function SinglePdfPreviewCard({
   onAction,
   onRemove,
   previewRotation = 0,
+  previewPosition = null, // e.g. 'bottom-right', 'top-left', 'middle-center'
 }) {
   const [preview, setPreview] = useState(null);
 
@@ -316,6 +345,9 @@ export function SinglePdfPreviewCard({
           ) : (
             <div className="single-pdf-preview-placeholder" style={{ transform: previewTransform }}>PDF</div>
           )}
+            {previewPosition ? (
+              <span className={`preview-page-dot preview-page-dot-${previewPosition}`} aria-hidden="true" />
+            ) : null}
         </div>
 
         <div className="single-pdf-preview-copy">

@@ -1,22 +1,54 @@
 import { randomUUID } from 'crypto';
 import { spawn } from 'child_process';
+import { existsSync } from 'fs';
 import os from 'os';
 import path from 'path';
-import { access, mkdir, readFile, rm, stat, writeFile } from 'fs/promises';
+import { mkdir, readFile, rm, stat, writeFile } from 'fs/promises';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const PDF_MIME = 'application/pdf';
+const PDF_MIME  = 'application/pdf';
 const PYTHON_BIN = process.env.PYTHON_BIN || (process.platform === 'win32' ? 'python' : 'python3');
 const CONVERTER_SCRIPT = path.join(process.cwd(), 'backend', 'word_to_pdf_converter.py');
 const WORK_ROOT = path.join(os.tmpdir(), 'sababpdf-word-to-pdf');
-const DEFAULT_CONVERTER_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
-const CONFIGURED_CONVERTER_TIMEOUT_MS = Number(process.env.WORD_TO_PDF_TIMEOUT_MS);
-const CONVERTER_TIMEOUT_MS = Number.isFinite(CONFIGURED_CONVERTER_TIMEOUT_MS) && CONFIGURED_CONVERTER_TIMEOUT_MS > 0
-  ? CONFIGURED_CONVERTER_TIMEOUT_MS
-  : DEFAULT_CONVERTER_TIMEOUT_MS;
+const CONVERTER_TIMEOUT_MS = Number(process.env.WORD_TO_PDF_TIMEOUT_MS) > 0
+  ? Number(process.env.WORD_TO_PDF_TIMEOUT_MS)
+  : 5 * 60 * 1000;
 
+// ── LibreOffice path detection ─────────────────────────────────────────────
+const LO_WIN_PATHS = [
+  'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
+  'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
+  'C:\\Program Files\\LibreOffice 26\\program\\soffice.exe',
+  'C:\\Program Files\\LibreOffice 7\\program\\soffice.exe',
+  'C:\\Program Files\\LibreOffice 6\\program\\soffice.exe',
+];
+
+function findLibreOffice() {
+  if (process.env.LIBREOFFICE_BIN) return process.env.LIBREOFFICE_BIN;
+  if (process.platform === 'win32') {
+    for (const p of LO_WIN_PATHS) {
+      if (existsSync(p)) return p;
+    }
+    return null;
+  }
+  // Linux / Mac — check known fixed paths (no PATH dependency)
+  for (const cmd of ['libreoffice', 'soffice']) {
+    for (const prefix of ['/usr/bin', '/usr/local/bin', '/opt/libreoffice/program']) {
+      const full = `${prefix}/${cmd}`;
+      if (existsSync(full)) return full;
+    }
+  }
+  return null;
+}
+
+// Detect once at module load time (sync, no PATH dependency)
+const LO_BIN = findLibreOffice();
+
+console.log('[Word-to-PDF] LibreOffice binary:', LO_BIN || 'NOT FOUND');
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 function sanitizeBaseName(filename) {
   return (filename || 'document')
     .replace(/\.[^.]+$/, '')
@@ -28,6 +60,7 @@ function buildJsonResponse(message, status) {
   return Response.json({ error: message }, { status });
 }
 
+/** Run python word_to_pdf_converter.py */
 function runPythonConverter(inputPath, outputPath) {
   return new Promise((resolve, reject) => {
     const child = spawn(PYTHON_BIN, [CONVERTER_SCRIPT, inputPath, outputPath], {
@@ -35,192 +68,159 @@ function runPythonConverter(inputPath, outputPath) {
       windowsHide: true,
     });
 
-    let stdout = '';
-    let stderr = '';
-    let timedOut = false;
+    let stdout = '', stderr = '', timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; child.kill('SIGTERM'); }, CONVERTER_TIMEOUT_MS);
 
-    const timer = setTimeout(() => {
-      timedOut = true;
-      child.kill('SIGTERM');
-    }, CONVERTER_TIMEOUT_MS);
-
-    child.stdout.on('data', (chunk) => {
-      stdout += chunk.toString();
-    });
-
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
-    });
-
-    child.on('error', (error) => {
-      clearTimeout(timer);
-      reject(error);
-    });
-
+    child.stdout.on('data', (c) => { stdout += c.toString(); });
+    child.stderr.on('data', (c) => { stderr += c.toString(); });
+    child.on('error', (e) => { clearTimeout(timer); reject(e); });
     child.on('close', (code) => {
       clearTimeout(timer);
-      resolve({
-        code,
-        stdout: stdout.trim(),
-        stderr: stderr.trim(),
-        timedOut,
-      });
+      resolve({ code, stdout: stdout.trim(), stderr: stderr.trim(), timedOut });
     });
   });
 }
 
-export async function POST(request) {
-  const workDir = path.join(WORK_ROOT, randomUUID());
+/** Run LibreOffice directly (bypasses Python) */
+function runLibreOfficeDirect(loBin, inputPath, outputDir) {
+  return new Promise((resolve) => {
+    const child = spawn(loBin, [
+      '--headless',
+      '--norestore',
+      '--convert-to', 'pdf:writer_pdf_Export',
+      '--outdir', outputDir,
+      inputPath,
+    ], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
 
-  try {
-    await access(CONVERTER_SCRIPT);
-  } catch {
-    console.log('[Word-to-PDF] Python converter script found');
+    let stderr = '';
+    const timer = setTimeout(() => {
+      child.kill('SIGTERM');
+      resolve({ success: false, reason: 'LibreOffice timed out.' });
+    }, CONVERTER_TIMEOUT_MS);
+
+    child.stderr.on('data', (c) => { stderr += c.toString(); });
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      resolve({ success: code === 0, reason: stderr.trim() });
+    });
+    child.on('error', (e) => {
+      clearTimeout(timer);
+      resolve({ success: false, reason: e.message });
+    });
+  });
+}
+
+// ── Main handler ───────────────────────────────────────────────────────────
+export async function POST(request) {
+  // Early check — if LibreOffice is definitely missing, refuse immediately
+  if (!LO_BIN) {
+    return buildJsonResponse(
+      'Word to PDF conversion requires LibreOffice. ' +
+      'Please install it from https://www.libreoffice.org/download/ and restart the server. ' +
+      'If LibreOffice is already installed in a non-standard location, set the LIBREOFFICE_BIN environment variable.',
+      503
+    );
   }
+
+  const workDir = path.join(WORK_ROOT, randomUUID());
 
   try {
     const formData = await request.formData();
     const file = formData.get('file');
 
-    if (!(file instanceof File)) {
-      return buildJsonResponse('No Word file was uploaded.', 400);
-    }
+    if (!(file instanceof File)) return buildJsonResponse('No Word file was uploaded.', 400);
 
     const fileName = file.name || 'document.docx';
-    const validExts = ['.doc', '.docx'];
-    const fileExt = '.' + fileName.split('.').pop().toLowerCase();
-    if (!validExts.includes(fileExt)) {
+    const fileExt  = '.' + fileName.split('.').pop().toLowerCase();
+    if (!['.doc', '.docx'].includes(fileExt)) {
       return buildJsonResponse('Please upload a Word document (.doc or .docx).', 400);
     }
 
     await mkdir(workDir, { recursive: true });
 
-    const inputPath = path.join(workDir, `${randomUUID()}${fileExt}`);
-    const outputPath = path.join(workDir, `${sanitizeBaseName(fileName)}-converted.pdf`);
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const inputPath  = path.join(workDir, `input${fileExt}`);
+    const baseName   = sanitizeBaseName(fileName);
+    const outputPath = path.join(workDir, `${baseName}-converted.pdf`);
 
-    await writeFile(inputPath, fileBuffer);
+    await writeFile(inputPath, Buffer.from(await file.arrayBuffer()));
 
-    // Try Python converter first
-    let result;
-    let useLibreOfficeDirect = false;
-    
+    const startedAt = Date.now();
+
+    // ── STRATEGY 1: Python script (uses find_libreoffice() internally) ──
+    let pyOk = false;
     try {
-      result = await runPythonConverter(inputPath, outputPath);
-    } catch (pythonError) {
-      console.log('[Word-to-PDF] Python converter failed, trying LibreOffice directly...');
-      useLibreOfficeDirect = true;
-    }
-
-    // If Python converter failed or returned error, try LibreOffice directly
-    if (useLibreOfficeDirect || (result && result.code !== 0)) {
-      // Fallback to LibreOffice command
-      const libreofficeCmd = process.platform === 'win32'
-        ? '"C:\\Program Files\\LibreOffice\\program\\soffice.exe"'
-        : 'libreoffice';
-
-      return new Promise((resolve) => {
-        const child = spawn(libreofficeCmd, [
-          '--headless',
-          '--convert-to', 'pdf',
-          '--outdir', workDir,
-          inputPath
-        ], {
-          stdio: ['ignore', 'pipe', 'pipe'],
-          windowsHide: true,
-        });
-
-        let stderr = '';
-        const timer = setTimeout(() => {
-          child.kill('SIGTERM');
-          resolve(buildJsonResponse('Conversion timed out. Please try again.', 504));
-        }, CONVERTER_TIMEOUT_MS);
-
-        child.stderr.on('data', (chunk) => {
-          stderr += chunk.toString();
-        });
-
-        child.on('close', async (code) => {
-          clearTimeout(timer);
-
-          // Check if output was created
-          let outputStats = null;
+      if (existsSync(CONVERTER_SCRIPT)) {
+        const pyResult = await runPythonConverter(inputPath, outputPath);
+        if (!pyResult.timedOut && pyResult.code === 0) {
           try {
-            outputStats = await stat(outputPath);
-          } catch {
-            // Try alternative output path (LibreOffice might use different name)
-            const altOutputPath = path.join(workDir, `${path.basename(inputPath, fileExt)}.pdf`);
-            try {
-              outputStats = await stat(altOutputPath);
-              // Rename to expected output
-              await writeFile(outputPath, await readFile(altOutputPath));
-              await rm(altOutputPath, { force: true });
-            } catch {
-              outputStats = null;
-            }
-          }
-
-          if (code !== 0 || !outputStats || outputStats.size === 0) {
-            const errorMsg = stderr.trim();
-            let userMessage = 'Word to PDF conversion failed.';
-            
-            if (errorMsg.includes('not found') || errorMsg.includes('cannot find')) {
-              userMessage = 'LibreOffice is not installed. Please install LibreOffice to use this feature.';
-            } else if (errorMsg.includes('access denied') || errorMsg.includes('permission')) {
-              userMessage = 'Permission error during conversion. Please try again.';
-            }
-            
-            console.error('[Word-to-PDF] Conversion error:', errorMsg);
-            resolve(buildJsonResponse(userMessage, 500));
-          } else {
-            const outputBytes = await readFile(outputPath);
-            const downloadName = `${sanitizeBaseName(fileName)}-converted.pdf`;
-
-            resolve(new Response(new Uint8Array(outputBytes), {
-              status: 200,
-              headers: {
-                'Content-Type': PDF_MIME,
-                'Content-Disposition': `attachment; filename="${downloadName}"`,
-                'Content-Length': String(outputBytes.length),
-                'Cache-Control': 'no-store',
-              },
-            }));
-          }
-        });
-      });
+            const s = await stat(outputPath);
+            if (s.size > 0) pyOk = true;
+          } catch { /* not created */ }
+        }
+        if (!pyOk) {
+          console.warn('[Word-to-PDF] Python script failed:', pyResult.stdout || pyResult.stderr);
+        }
+      }
+    } catch (e) {
+      console.warn('[Word-to-PDF] Python spawn error:', e.message);
     }
 
-    if (result.timedOut) {
-      return buildJsonResponse('Word to PDF conversion timed out. Please try a smaller document.', 504);
+    if (pyOk) {
+      console.log('[Word-to-PDF] Python converter succeeded in', Date.now() - startedAt, 'ms');
+      const bytes = await readFile(outputPath);
+      return successResponse(bytes, baseName);
     }
 
-    let outputStats = null;
-    try {
-      outputStats = await stat(outputPath);
-    } catch {
-      outputStats = null;
+    // ── STRATEGY 2: LibreOffice direct call ──
+    console.log('[Word-to-PDF] Trying LibreOffice direct:', LO_BIN);
+    const loResult = await runLibreOfficeDirect(LO_BIN, inputPath, workDir);
+
+    if (loResult.success) {
+      // LO names the PDF after the input file's basename (without extension)
+      const inputBase = path.basename(inputPath, fileExt);   // "input"
+      const loPdf     = path.join(workDir, `${inputBase}.pdf`);
+
+      // Move LO's output to our expected outputPath if they differ
+      try {
+        if (loPdf !== outputPath) {
+          const s = await stat(loPdf);
+          if (s.size > 0) await writeFile(outputPath, await readFile(loPdf));
+        }
+      } catch { /* might already be at outputPath */ }
+
+      try {
+        const s = await stat(outputPath);
+        if (s.size > 0) {
+          console.log('[Word-to-PDF] LibreOffice direct succeeded in', Date.now() - startedAt, 'ms');
+          const bytes = await readFile(outputPath);
+          return successResponse(bytes, baseName);
+        }
+      } catch { /* fall through */ }
     }
 
-    if (result.code !== 0 || !outputStats || outputStats.size === 0) {
-      return buildJsonResponse('Word to PDF conversion failed. Please ensure LibreOffice is installed.', 500);
-    }
+    console.error('[Word-to-PDF] Both strategies failed. LO reason:', loResult.reason);
+    return buildJsonResponse(
+      `Conversion failed: LibreOffice ran but did not produce a PDF. ` +
+      (loResult.reason ? loResult.reason.split('\n')[0] : 'Unknown error.'),
+      500
+    );
 
-    const outputBytes = await readFile(outputPath);
-    const downloadName = `${sanitizeBaseName(fileName)}-converted.pdf`;
-
-    return new Response(new Uint8Array(outputBytes), {
-      status: 200,
-      headers: {
-        'Content-Type': PDF_MIME,
-        'Content-Disposition': `attachment; filename="${downloadName}"`,
-        'Content-Length': String(outputBytes.length),
-        'Cache-Control': 'no-store',
-      },
-    });
   } catch (error) {
     console.error('[Word-to-PDF] Unexpected error:', error.message);
     return buildJsonResponse(`Conversion failed: ${error.message}`, 500);
   } finally {
     await rm(workDir, { recursive: true, force: true }).catch(() => {});
   }
+}
+
+function successResponse(bytes, baseName) {
+  return new Response(new Uint8Array(bytes), {
+    status: 200,
+    headers: {
+      'Content-Type': PDF_MIME,
+      'Content-Disposition': `attachment; filename="${baseName}-converted.pdf"`,
+      'Content-Length': String(bytes.length),
+      'Cache-Control': 'no-store',
+    },
+  });
 }

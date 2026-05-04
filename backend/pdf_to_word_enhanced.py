@@ -12,6 +12,7 @@ import json
 import logging
 import re
 import shutil
+import subprocess
 from typing import List, Tuple, Optional, Dict, Any
 from io import BytesIO
 
@@ -64,7 +65,7 @@ except ImportError as e:
 
 PDF2DOCX_AVAILABLE = False
 try:
-    from pdf2docx import Converter as Pdf2DocxConverter
+    import pdf2docx  # noqa: F401
     PDF2DOCX_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"pdf2docx import error: {e}")
@@ -72,6 +73,49 @@ except ImportError as e:
 # Constants
 DEFAULT_DPI = 300
 MARGIN_CM = 2.0
+DEFAULT_PDF2DOCX_TIMEOUT_SECONDS = 180
+DEFAULT_PDF2DOCX_MAX_PAGES = 120
+DEFAULT_PDF2DOCX_MAX_FILE_SIZE_MB = 15.0
+DEFAULT_RICH_EDITABLE_MAX_PAGES = 24
+DEFAULT_RICH_EDITABLE_MAX_FILE_SIZE_MB = 8.0
+
+
+def _read_positive_int_env(name: str, default: int) -> int:
+    try:
+        value = int(os.environ.get(name, default))
+        return value if value > 0 else default
+    except (TypeError, ValueError):
+        return default
+
+
+def _read_positive_float_env(name: str, default: float) -> float:
+    try:
+        value = float(os.environ.get(name, default))
+        return value if value > 0 else default
+    except (TypeError, ValueError):
+        return default
+
+
+PDF2DOCX_TIMEOUT_SECONDS = _read_positive_int_env(
+    'PDF_TO_WORD_PDF2DOCX_TIMEOUT_SECONDS',
+    DEFAULT_PDF2DOCX_TIMEOUT_SECONDS,
+)
+PDF2DOCX_MAX_PAGES = _read_positive_int_env(
+    'PDF_TO_WORD_PDF2DOCX_MAX_PAGES',
+    DEFAULT_PDF2DOCX_MAX_PAGES,
+)
+PDF2DOCX_MAX_FILE_SIZE_MB = _read_positive_float_env(
+    'PDF_TO_WORD_PDF2DOCX_MAX_FILE_SIZE_MB',
+    DEFAULT_PDF2DOCX_MAX_FILE_SIZE_MB,
+)
+RICH_EDITABLE_MAX_PAGES = _read_positive_int_env(
+    'PDF_TO_WORD_RICH_EDITABLE_MAX_PAGES',
+    DEFAULT_RICH_EDITABLE_MAX_PAGES,
+)
+RICH_EDITABLE_MAX_FILE_SIZE_MB = _read_positive_float_env(
+    'PDF_TO_WORD_RICH_EDITABLE_MAX_FILE_SIZE_MB',
+    DEFAULT_RICH_EDITABLE_MAX_FILE_SIZE_MB,
+)
 
 
 def check_dependencies():
@@ -106,6 +150,7 @@ class EnhancedPDFToWordConverter:
         self.pdf_doc = None
         self.page_count = 0
         self.pdfplumber_doc = None
+        self.use_rich_editable_extraction = True
 
     def open_pdf(self) -> bool:
         """Open PDF document with PyMuPDF"""
@@ -115,11 +160,21 @@ class EnhancedPDFToWordConverter:
 
         try:
             self.pdf_doc = fitz.open(self.pdf_path)
+            # Detect password-protected / encrypted PDFs
+            if self.pdf_doc.is_encrypted:
+                self.pdf_doc.close()
+                self.pdf_doc = None
+                logger.error("PDF is password-protected or encrypted")
+                return False
             self.page_count = len(self.pdf_doc)
             logger.info(f"Opened PDF: {self.page_count} pages")
             return True
         except Exception as e:
-            logger.error(f"Failed to open PDF: {e}")
+            err_str = str(e).lower()
+            if 'encrypted' in err_str or 'password' in err_str or 'closed' in err_str:
+                logger.error(f"PDF is password-protected or encrypted: {e}")
+            else:
+                logger.error(f"Failed to open PDF: {e}")
             return False
 
     def open_pdfplumber(self) -> bool:
@@ -143,6 +198,12 @@ class EnhancedPDFToWordConverter:
         if self.pdfplumber_doc:
             self.pdfplumber_doc.close()
             self.pdfplumber_doc = None
+
+    def _get_file_size_mb(self) -> float:
+        try:
+            return os.path.getsize(self.pdf_path) / (1024 * 1024)
+        except OSError:
+            return 0.0
 
     def cleanup_temp(self):
         """Clean up temporary files"""
@@ -308,14 +369,53 @@ class EnhancedPDFToWordConverter:
 
         return tables
 
-    def _detect_complex_content(self, page_num: int) -> bool:
-        """Detect if page has complex content like mathematical formulas"""
+    def _detect_complex_content(
+        self,
+        page_num: int,
+        text_blocks: Optional[List[Dict]] = None,
+        tables: Optional[List[Dict]] = None,
+        images: Optional[List[Dict]] = None,
+    ) -> bool:
+        """Detect when a page should be preserved visually instead of rebuilt as editable text."""
         if not FITZ_AVAILABLE:
             return False
 
         try:
             page = self.pdf_doc[page_num]
             text_dict = page.get_text("dict")
+            page_area = max(page.rect.width * page.rect.height, 1)
+
+            if tables and len(tables) > 0:
+                return True
+
+            if images and len(images) >= 2:
+                return True
+
+            drawings = page.get_drawings()
+            filled_regions = 0
+            for drawing in drawings:
+                fill = drawing.get("fill")
+                fill_opacity = drawing.get("fill_opacity", 1 if fill else 0)
+                rect = drawing.get("rect")
+
+                if fill and fill_opacity and rect:
+                    filled_regions += 1
+                    area_ratio = (rect.width * rect.height) / page_area
+                    if area_ratio >= 0.12:
+                        return True
+
+            if len(drawings) >= 24 or filled_regions >= 6:
+                return True
+
+            candidate_blocks = text_blocks or []
+            if candidate_blocks:
+                block_starts = sorted({
+                    int((block.get('bbox', [0, 0, 0, 0])[0] // 24) * 24)
+                    for block in candidate_blocks
+                    if block.get('bbox')
+                })
+                if len(block_starts) >= 2 and (block_starts[-1] - block_starts[0]) >= 140:
+                    return True
 
             # Patterns for complex content
             math_patterns = [
@@ -325,14 +425,24 @@ class EnhancedPDFToWordConverter:
                 r'[⁰¹²³⁴⁵⁶⁸⁹]',  # Superscript numbers
             ]
 
+            total_spans = 0
+            colored_spans = 0
+
             for block in text_dict.get("blocks", []):
                 if block.get("type") == 0:
                     for line in block.get("lines", []):
                         for span in line.get("spans", []):
                             text = span.get("text", "")
+                            total_spans += 1
+                            color = span.get("color", 0)
+                            if color not in (0, None):
+                                colored_spans += 1
                             for pattern in math_patterns:
                                 if re.search(pattern, text):
                                     return True
+
+            if total_spans >= 12 and (colored_spans / total_spans) >= 0.18:
+                return True
 
             return False
 
@@ -490,11 +600,20 @@ class EnhancedPDFToWordConverter:
 
                 # Extract content
                 text_blocks = self.extract_text_with_positions(page_num)
-                images = self.extract_images(page_num)
-                tables = self.extract_tables_with_pdfplumber(page_num)
+                if self.use_rich_editable_extraction:
+                    images = self.extract_images(page_num)
+                    tables = self.extract_tables_with_pdfplumber(page_num)
+                else:
+                    images = []
+                    tables = []
 
-                # Check for complex content
-                has_complex_content = self._detect_complex_content(page_num)
+                # Keep visually complex pages intact instead of rebuilding them poorly as editable text.
+                has_complex_content = self._detect_complex_content(
+                    page_num,
+                    text_blocks=text_blocks,
+                    tables=tables,
+                    images=images,
+                )
 
                 # If page has complex content, render as image
                 if has_complex_content:
@@ -605,6 +724,84 @@ class EnhancedPDFToWordConverter:
                 inner[2] <= outer[2] and
                 inner[3] <= outer[3])
 
+    def _should_try_pdf2docx(self, effective_mode: str) -> Tuple[bool, str]:
+        """Use pdf2docx only for smaller editable PDFs where it is most reliable."""
+        if effective_mode != 'editable':
+            return False, f"Skipping pdf2docx for mode '{effective_mode}'."
+
+        if not PDF2DOCX_AVAILABLE:
+            return False, 'pdf2docx is not installed.'
+
+        if self.page_count > PDF2DOCX_MAX_PAGES:
+            return False, f"Skipping pdf2docx because the PDF has {self.page_count} pages."
+
+        file_size_mb = self._get_file_size_mb()
+
+        if file_size_mb > PDF2DOCX_MAX_FILE_SIZE_MB:
+            return False, f"Skipping pdf2docx because the PDF is {file_size_mb:.1f} MB."
+
+        return True, 'Trying pdf2docx first for a smaller editable PDF.'
+
+    def _should_use_rich_editable_extraction(self) -> Tuple[bool, str]:
+        """
+        Rich editable extraction preserves more tables and images, but it is slower.
+        For larger or more complex PDFs we switch to a faster text-first DOCX path.
+        """
+        file_size_mb = self._get_file_size_mb()
+
+        if self.page_count > RICH_EDITABLE_MAX_PAGES:
+            return False, (
+                f"Using fast editable mode because the PDF has {self.page_count} pages. "
+                "Skipping expensive table and embedded-image extraction."
+            )
+
+        if file_size_mb > RICH_EDITABLE_MAX_FILE_SIZE_MB:
+            return False, (
+                f"Using fast editable mode because the PDF is {file_size_mb:.1f} MB. "
+                "Skipping expensive table and embedded-image extraction."
+            )
+
+        return True, 'Using rich editable mode with table and image extraction.'
+
+    def _run_pdf2docx_with_timeout(self) -> Tuple[bool, str]:
+        """Run pdf2docx in an isolated subprocess so a hung engine can time out cleanly."""
+        intermediate_output_path = os.path.join(self.temp_dir, 'pdf2docx-output.docx')
+        script = """
+import sys
+from pdf2docx import Converter
+
+input_path = sys.argv[1]
+output_path = sys.argv[2]
+converter = Converter(input_path)
+try:
+    converter.convert(output_path)
+finally:
+    converter.close()
+"""
+
+        try:
+            result = subprocess.run(
+                [sys.executable, '-c', script, self.pdf_path, intermediate_output_path],
+                capture_output=True,
+                text=True,
+                timeout=PDF2DOCX_TIMEOUT_SECONDS,
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            return False, f'pdf2docx timed out after {PDF2DOCX_TIMEOUT_SECONDS} seconds.'
+        except Exception as exc:
+            return False, f'pdf2docx could not start: {exc}'
+
+        if result.returncode != 0:
+            details = (result.stderr or result.stdout or '').strip()
+            return False, details or f'pdf2docx exited with code {result.returncode}.'
+
+        if not os.path.exists(intermediate_output_path) or os.path.getsize(intermediate_output_path) == 0:
+            return False, 'pdf2docx finished without creating a DOCX file.'
+
+        shutil.move(intermediate_output_path, self.output_path)
+        return True, 'Successfully converted with pdf2docx (highest quality)'
+
     def convert(self) -> Tuple[bool, str]:
         """
         Main conversion method with quality-first approach.
@@ -622,10 +819,20 @@ class EnhancedPDFToWordConverter:
 
         # Open PDF
         if not self.open_pdf():
-            return False, "Failed to open PDF file"
-
-        # Open pdfplumber for better table detection
-        self.open_pdfplumber()
+            # Check if it's an encryption issue
+            import sys as _sys
+            if FITZ_AVAILABLE:
+                try:
+                    _test = fitz.open(self.pdf_path)
+                    if _test.is_encrypted:
+                        _test.close()
+                        return False, "This PDF is password-protected or encrypted. Please remove the password first using the Unlock PDF tool."
+                    _test.close()
+                except Exception as _e:
+                    _es = str(_e).lower()
+                    if 'encrypted' in _es or 'password' in _es or 'closed' in _es:
+                        return False, "This PDF is password-protected or encrypted. Please remove the password first using the Unlock PDF tool."
+            return False, "Failed to open the PDF file. The file may be corrupted, password-protected, or not a valid PDF."
 
         try:
             # Create temp directory
@@ -642,18 +849,23 @@ class EnhancedPDFToWordConverter:
             else:
                 effective_mode = 'layout'
 
-            # STRATEGY 1: Try pdf2docx first (best quality)
-            if PDF2DOCX_AVAILABLE and effective_mode in ('editable', 'layout'):
-                try:
-                    logger.info("Trying pdf2docx for highest quality conversion...")
-                    converter = Pdf2DocxConverter(self.pdf_path)
-                    converter.convert(self.output_path)
-                    converter.close()
+            if effective_mode == 'editable':
+                self.use_rich_editable_extraction, editable_reason = self._should_use_rich_editable_extraction()
+                logger.info(editable_reason)
+                if self.use_rich_editable_extraction:
+                    self.open_pdfplumber()
+            else:
+                self.use_rich_editable_extraction = False
 
-                    if os.path.exists(self.output_path) and os.path.getsize(self.output_path) > 0:
-                        return True, "Successfully converted with pdf2docx (highest quality)"
-                except Exception as e:
-                    logger.warning(f"pdf2docx failed: {e}")
+            should_try_pdf2docx, pdf2docx_reason = self._should_try_pdf2docx(effective_mode)
+            logger.info(pdf2docx_reason)
+
+            # STRATEGY 1: Try pdf2docx first only for smaller editable PDFs
+            if should_try_pdf2docx:
+                success, message = self._run_pdf2docx_with_timeout()
+                if success:
+                    return True, message
+                logger.warning(f"pdf2docx fallback triggered: {message}")
 
             # STRATEGY 2: Custom extraction
             if effective_mode == 'editable':
@@ -686,6 +898,9 @@ class EnhancedPDFToWordConverter:
             logger.error(f"Conversion error: {e}")
             import traceback
             logger.error(traceback.format_exc())
+            err_str = str(e).lower()
+            if 'encrypted' in err_str or 'password' in err_str or 'closed' in err_str:
+                return False, "This PDF is password-protected or encrypted. Please remove the password first using the Unlock PDF tool."
             return False, f"Conversion error: {e}"
 
         finally:

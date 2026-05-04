@@ -42,11 +42,11 @@ function getTimingCopy(pageCount, mode) {
   return {
     title: mode === 'layout' ? 'Ready to preserve layout' : mode === 'ocr' ? 'Ready for OCR conversion' : 'Ready for editing',
       detail:
-      mode === 'layout'
-        ? `This PDF has ${pageCount} pages. The Word file will keep each page visually aligned with the original PDF.`
+        mode === 'layout'
+          ? `This PDF has ${pageCount} pages. The Word file will keep each page visually aligned with the original PDF.`
         : mode === 'ocr'
           ? `This PDF has ${pageCount} pages. OCR mode will try to turn scanned page text into editable Word text.`
-          : `This PDF has ${pageCount} pages. The enhanced converter will keep Word text editable, and small digital PDFs now use a faster conversion profile.`,
+          : `This PDF has ${pageCount} pages. The enhanced converter keeps simple text editable, and visually complex pages can fall back to a preserved page look when that gives a better result.`,
   };
 }
 
@@ -97,12 +97,12 @@ function getModeSummary(mode) {
       { label: 'Images', value: 'Movable and replaceable' },
       { label: 'Formulas', value: 'Visual when needed' },
     ],
-    features: [
-      'A stronger PDF-to-DOCX engine is used first for digital PDFs with selectable text.',
-      'Text stays editable in Word while page structure, tables, and spacing are preserved more faithfully.',
-      'Images are inserted into the DOCX so you can move or replace them later.',
-      'If the stronger engine cannot finish cleanly, the converter falls back to the legacy extractor.',
-    ],
+      features: [
+        'A stronger PDF-to-DOCX engine is used first for digital PDFs with selectable text.',
+        'Text stays editable in Word while page structure, tables, and spacing are preserved more faithfully.',
+        'Images are inserted into the DOCX so you can move or replace them later.',
+        'If a page is too visually complex, the converter can preserve that page as a faithful visual layout instead of rebuilding it poorly.',
+      ],
   };
 }
 
@@ -150,7 +150,8 @@ export default function PdfToWordPreview({
             <p>
               Choose <strong>No OCR</strong> for PDFs with selectable text, <strong>OCR</strong> for scanned PDFs with
               non-selectable text, or <strong>Keep PDF layout</strong> when you want the page look closest to the
-              original PDF. No OCR now uses the stronger editable converter first.
+              original PDF. No OCR now uses the stronger editable converter first and can preserve visually complex
+              pages when that gives a better Word result.
             </p>
           </div>
 

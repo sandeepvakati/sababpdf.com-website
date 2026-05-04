@@ -4,6 +4,12 @@ const isDev = process.env.NODE_ENV !== 'production';
 const nextConfig = {
   distDir: isDev ? '.next-dev' : '.next',
   reactStrictMode: false,
+  // Allow larger request bodies for server actions (App Router)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '50mb',
+    },
+  },
   webpack: (config) => {
     // pdfjs-dist references optional Node canvas packages that are not needed in the browser build.
     config.resolve.alias.canvas = false;

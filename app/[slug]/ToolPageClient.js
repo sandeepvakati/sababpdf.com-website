@@ -3,10 +3,19 @@
 import Link from 'next/link';
 import UnifiedToolWrapper from '../../components/UnifiedToolWrapper';
 import ToolWorkspace from '../../components/ToolWorkspace';
-import PdfToWordILovePDF from '../../components/PdfToWordILovePDF';
 import WordToPdfILovePDF from '../../components/WordToPdfILovePDF';
 import ExtractPages from './ExtractPages';
-
+import ReorderPages from './ReorderPages';
+import HtmlToPdfILovePDF from '../../components/HtmlToPdfILovePDF';
+import AddWatermarkILovePDF from '../../components/AddWatermarkILovePDF';
+import AddPages from './AddPages';
+import ScanToPdfILovePDF from '../../components/ScanToPdfILovePDF';
+import PdfToJpgILovePDF from '../../components/PdfToJpgILovePDF';
+import EditPdfILovePDF from '../../components/EditPdfILovePDF';
+import UnlockPdfILovePDF from '../../components/UnlockPdfILovePDF';
+import ProtectPdfILovePDF from '../../components/ProtectPdfILovePDF';
+import SignPdfILovePDF from '../../components/SignPdfILovePDF';
+import RedactPdfILovePDF from '../../components/RedactPdfILovePDF';
 function buildGuide(tool) {
   const sharedSteps = [
     'Upload the source file in the workspace section.',
@@ -47,8 +56,8 @@ function buildGuide(tool) {
     ],
     'reorder-pages': [
       'Upload one PDF file.',
-      'Enter the full page order, for example 3,1,2.',
-      'Download the PDF in the new sequence.',
+      'Drag and drop page thumbnails to rearrange them into the order you want.',
+      'Click Reorder Pages and download your PDF in the new sequence.',
     ],
     'jpg-to-pdf': [
       'Upload one or more image files.',
@@ -67,8 +76,8 @@ function buildGuide(tool) {
     ],
     'pdf-to-jpg': [
       'Upload one PDF file.',
-      'Start the export job.',
-      'Download the ZIP file that contains one JPG image per page.',
+      'Click Convert to JPG and wait for the pages to be extracted.',
+      'Download each page image individually, or download all images at once.',
     ],
     'watermark-pdf': [
       'Upload one PDF file.',
@@ -79,6 +88,16 @@ function buildGuide(tool) {
       'Upload one PDF file.',
       'Choose the page-number position and optional prefix or suffix.',
       'Download the numbered PDF.',
+    ],
+    'add-pages': [
+      'Upload the base PDF you want to add pages to.',
+      'Add one or more PDF files whose pages you want to insert.',
+      'Choose the insert position (beginning, end, or after a specific page) and download.',
+    ],
+    'scan-to-pdf': [
+      'Open your camera or upload photos of documents you want to scan.',
+      'Adjust brightness, contrast, and grayscale to enhance the scanned look.',
+      'Click Create PDF to generate a downloadable PDF from all scanned pages.',
     ],
   };
 
@@ -154,11 +173,11 @@ export default function ToolPageClient({ tool }) {
     );
   }
 
-  // ----- PDF to Word -----
-  if (tool.id === 'pdf-to-word') {
+  // ----- Reorder Pages -----
+  if (tool.id === 'reorder-pages') {
     return (
       <UnifiedToolWrapper tool={tool}>
-        <PdfToWordILovePDF embedded />
+        <ReorderPages embedded />
         <SeoContent tool={tool} guide={guide} />
       </UnifiedToolWrapper>
     );
@@ -169,6 +188,106 @@ export default function ToolPageClient({ tool }) {
     return (
       <UnifiedToolWrapper tool={tool}>
         <WordToPdfILovePDF embedded />
+        <SeoContent tool={tool} guide={guide} />
+      </UnifiedToolWrapper>
+    );
+  }
+
+  // ----- HTML to PDF -----
+  if (tool.id === 'html-to-pdf') {
+    return (
+      <UnifiedToolWrapper tool={tool}>
+        <HtmlToPdfILovePDF embedded />
+        <SeoContent tool={tool} guide={guide} />
+      </UnifiedToolWrapper>
+    );
+  }
+
+  // ----- Add Watermark -----
+  if (tool.id === 'watermark-pdf') {
+    return (
+      <UnifiedToolWrapper tool={tool}>
+        <AddWatermarkILovePDF embedded />
+        <SeoContent tool={tool} guide={guide} />
+      </UnifiedToolWrapper>
+    );
+  }
+
+  // ----- Edit PDF -----
+  if (tool.id === 'edit-pdf') {
+    return (
+      <>
+        <EditPdfILovePDF />
+        <SeoContent tool={tool} guide={guide} />
+      </>
+    );
+  }
+
+  // ----- Add Pages -----
+  if (tool.id === 'add-pages') {
+    return (
+      <UnifiedToolWrapper tool={tool}>
+        <AddPages embedded />
+        <SeoContent tool={tool} guide={guide} />
+      </UnifiedToolWrapper>
+    );
+  }
+
+  // ----- Scan to PDF -----
+  if (tool.id === 'scan-to-pdf') {
+    return (
+      <UnifiedToolWrapper tool={tool}>
+        <ScanToPdfILovePDF embedded />
+        <SeoContent tool={tool} guide={guide} />
+      </UnifiedToolWrapper>
+    );
+  }
+
+  // ----- PDF to JPG -----
+  if (tool.id === 'pdf-to-jpg') {
+    return (
+      <UnifiedToolWrapper tool={tool}>
+        <PdfToJpgILovePDF embedded />
+        <SeoContent tool={tool} guide={guide} />
+      </UnifiedToolWrapper>
+    );
+  }
+
+  // ----- Unlock PDF -----
+  if (tool.id === 'unlock-pdf') {
+    return (
+      <UnifiedToolWrapper tool={tool}>
+        <UnlockPdfILovePDF embedded />
+        <SeoContent tool={tool} guide={guide} />
+      </UnifiedToolWrapper>
+    );
+  }
+
+  // ----- Protect PDF -----
+  if (tool.id === 'protect-pdf') {
+    return (
+      <UnifiedToolWrapper tool={tool}>
+        <ProtectPdfILovePDF embedded />
+        <SeoContent tool={tool} guide={guide} />
+      </UnifiedToolWrapper>
+    );
+  }
+
+  // ----- Sign PDF -----
+  if (tool.id === 'sign-pdf') {
+    return (
+      <UnifiedToolWrapper tool={tool}>
+        <SignPdfILovePDF embedded />
+        <SeoContent tool={tool} guide={guide} />
+      </UnifiedToolWrapper>
+    );
+  }
+
+  // ----- Redact PDF -----
+  if (tool.id === 'redact-pdf') {
+    return (
+      <UnifiedToolWrapper tool={tool}>
+        <RedactPdfILovePDF embedded />
         <SeoContent tool={tool} guide={guide} />
       </UnifiedToolWrapper>
     );

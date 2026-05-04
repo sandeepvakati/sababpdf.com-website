@@ -142,11 +142,11 @@ export default function UnifiedToolWrapper({ tool, children }) {
         /* ===== Tool Card ===== */
         .unified-tool-card {
           max-width: 960px;
-          margin: -20px auto 32px;
-          background: var(--surface-solid);
-          border: 1px solid var(--surface-border);
-          border-radius: 20px;
-          box-shadow: var(--card-shadow-soft);
+          margin: 0 auto 32px;
+          background: transparent;
+          border: none;
+          border-radius: 0;
+          box-shadow: none;
           padding: 32px;
           position: relative;
           z-index: 2;

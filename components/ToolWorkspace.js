@@ -4,8 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import JSZip from 'jszip';
 import FileUploader, { FileList, SinglePdfPreviewCard } from './FileUploader';
 import PdfToWordPreview from './PdfToWordPreview';
-import SignaturePadModal from './SignaturePadModal';
-import PdfCanvasInteractor from './PdfCanvasInteractor';
 import {
   addPageNumbers,
   addWatermark,
@@ -23,11 +21,6 @@ import {
   splitPDF,
   splitPDFAllPages,
   svgToJpg,
-  protectPDF,
-  unlockPDF,
-  signPDF,
-  editPDF,
-  redactPDF,
 } from '../lib/pdfUtils';
 
 const SUPPORTED_API_TOOLS = [
@@ -51,12 +44,6 @@ const CLIENT_TOOLS = new Set([
   'pdf-to-jpg',
   'watermark-pdf',
   'add-page-numbers',
-  'protect-pdf',
-  'unlock-pdf',
-  'sign-pdf',
-  'scan-to-pdf',
-  'edit-pdf',
-  'redact-pdf',
 ]);
 
 const DOWNLOAD_BUTTON_TOOLS = new Set([
@@ -205,6 +192,12 @@ function getUploadConfig(toolId) {
         label: 'Drop a PDF here',
         description: 'Each page will be exported as a JPG image inside a ZIP file.',
       };
+    case 'delete-pages':
+      return {
+        multiple: false,
+        label: 'Select PDF file',
+        description: 'Upload one PDF, enter the pages to remove, and download a cleaned copy.',
+      };
     case 'pdf-to-word':
       return {
         multiple: false,
@@ -234,28 +227,6 @@ function getUploadConfig(toolId) {
         multiple: false,
         label: 'Drop a PowerPoint file here',
         description: 'Upload one PPT or PPTX file to convert slides into PDF.',
-      };
-    case 'compare-pdf':
-      return {
-        multiple: true,
-        label: 'Drop two PDF files here',
-        description: 'Upload the original and the modified PDF to compare them.',
-      };
-    case 'protect-pdf':
-    case 'unlock-pdf':
-    case 'sign-pdf':
-    case 'redact-pdf':
-      return {
-        multiple: false,
-        label: 'Drop a PDF file here',
-        description: 'Upload one PDF file to secure, sign, or redact.',
-      };
-    case 'scan-to-pdf':
-      return {
-        multiple: true,
-        label: 'Drop images here',
-        description: 'Upload photos or use your camera to scan documents to PDF.',
-        capture: 'environment', // Triggers camera on mobile
       };
     case 'html-to-pdf':
       return {
@@ -445,27 +416,37 @@ export default function ToolWorkspace({ tool }) {
   const [splitInput, setSplitInput] = useState('1-2 | 3-4');
   const [rotation, setRotation] = useState('90');
   const [watermarkText, setWatermarkText] = useState('Confidential');
+  const [pageMode, setPageMode] = useState('single');
   const [pagePosition, setPagePosition] = useState('bottom-center');
   const [prefix, setPrefix] = useState('');
   const [suffix, setSuffix] = useState('');
+  const [pageNumberFirst, setPageNumberFirst] = useState('1');
+  const [pageNumberFrom, setPageNumberFrom] = useState('1');
+  const [pageNumberTo, setPageNumberTo] = useState('');
+  const [pageTextMode, setPageTextMode] = useState('number-only');
+  const [pageFontFamily, setPageFontFamily] = useState('helvetica');
+  const [pageFontSize, setPageFontSize] = useState('11');
+  const [pageFontBold, setPageFontBold] = useState(false);
+  const [pageFontItalic, setPageFontItalic] = useState(false);
+  const [pageFontUnderline, setPageFontUnderline] = useState(false);
+  const [pageFontColor, setPageFontColor] = useState('#4b5563');
   const [compressStrength, setCompressStrength] = useState(55);
   const [compressTargetValue, setCompressTargetValue] = useState('');
   const [compressTargetUnit, setCompressTargetUnit] = useState('mb');
   const [pdfToWordMode, setPdfToWordMode] = useState('no-ocr');
-  const [passwordInput, setPasswordInput] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [urlInput, setUrlInput] = useState('');
-  const [signatureModalOpen, setSignatureModalOpen] = useState(false);
-  const [signatureData, setSignatureData] = useState(null);
   const [splitPreviewOpen, setSplitPreviewOpen] = useState(false);
   const [splitPreviewItems, setSplitPreviewItems] = useState([]);
   const [splitPreviewLoading, setSplitPreviewLoading] = useState(false);
   const [splitPreviewError, setSplitPreviewError] = useState('');
-  
-  const canvasItemsRef = useRef([]);
+  const [deletePreviewItems, setDeletePreviewItems] = useState([]);
+  const [deletePreviewLoading, setDeletePreviewLoading] = useState(false);
+  const [deletePreviewError, setDeletePreviewError] = useState('');
   const [reorderPreviewItems, setReorderPreviewItems] = useState([]);
   const [reorderPreviewLoading, setReorderPreviewLoading] = useState(false);
   const [reorderPreviewError, setReorderPreviewError] = useState('');
+  const [pageNumberPreviewItems, setPageNumberPreviewItems] = useState([]);
+  const [pageNumberPreviewLoading, setPageNumberPreviewLoading] = useState(false);
+  const [pageNumberPreviewError, setPageNumberPreviewError] = useState('');
   const progressTimerRef = useRef(null);
   const processStartedAtRef = useRef(0);
 
@@ -500,7 +481,7 @@ export default function ToolWorkspace({ tool }) {
       case 'watermark-pdf':
         return `${tool.id}:${watermarkText}`;
       case 'add-page-numbers':
-        return `${tool.id}:${pagePosition}:${prefix}:${suffix}`;
+        return `${tool.id}:${pageMode}:${pagePosition}:${prefix}:${suffix}:${pageNumberFirst}:${pageNumberFrom}:${pageNumberTo}:${pageTextMode}:${pageFontFamily}:${pageFontSize}:${pageFontBold}:${pageFontItalic}:${pageFontUnderline}:${pageFontColor}`;
       case 'pdf-to-word':
         return `${tool.id}:${pdfToWordMode}`;
       default:
@@ -512,7 +493,18 @@ export default function ToolWorkspace({ tool }) {
     compressTargetValue,
     deleteInput,
     orderInput,
+    pageMode,
     pagePosition,
+    pageFontFamily,
+    pageFontSize,
+    pageFontBold,
+    pageFontItalic,
+    pageFontUnderline,
+    pageFontColor,
+    pageNumberFirst,
+    pageNumberFrom,
+    pageNumberTo,
+    pageTextMode,
     prefix,
     pdfToWordMode,
     rotation,
@@ -628,6 +620,159 @@ export default function ToolWorkspace({ tool }) {
       };
     }
   }, [orderInput, pageCount, tool.id]);
+  const deletePreviewConfig = useMemo(() => {
+    if (tool.id !== 'delete-pages' || !pageCount) {
+      return {
+        title: 'Page preview',
+        detail: 'Upload a PDF to preview its pages.',
+        pageNumbers: [],
+        selectedPages: [],
+        warning: '',
+      };
+    }
+
+    const basePreviewCount = Math.min(pageCount, 24);
+    const basePreviewPages = Array.from({ length: basePreviewCount }, (_, index) => index + 1);
+
+    if (!deleteInput.trim()) {
+      return {
+        title: 'Page preview',
+        detail:
+          pageCount > basePreviewCount
+            ? `Showing the first ${basePreviewCount} pages.`
+            : 'Showing all pages in this PDF.',
+        pageNumbers: basePreviewPages,
+        selectedPages: [],
+        warning: '',
+      };
+    }
+
+    try {
+      const selectedPages = parseNumberList(deleteInput, pageCount);
+      const previewPages = [...basePreviewPages];
+
+      selectedPages.forEach((pageNumber) => {
+        if (!previewPages.includes(pageNumber) && previewPages.length < 36) {
+          previewPages.push(pageNumber);
+        }
+      });
+
+      return {
+        title: 'Pages marked for removal',
+        detail: `${selectedPages.length} page${selectedPages.length === 1 ? '' : 's'} selected: ${formatPageSequence(selectedPages)}.`,
+        pageNumbers: previewPages,
+        selectedPages,
+        warning:
+          selectedPages.length > previewPages.filter((pageNumber) => selectedPages.includes(pageNumber)).length
+            ? 'Some selected pages are outside the preview limit but will still be removed.'
+            : '',
+      };
+    } catch (error) {
+      return {
+        title: 'Page preview',
+        detail:
+          pageCount > basePreviewCount
+            ? `Showing the first ${basePreviewCount} pages until the page rule is valid.`
+            : 'Showing all pages until the page rule is valid.',
+        pageNumbers: basePreviewPages,
+        selectedPages: [],
+        warning: error.message || 'Enter a valid page rule to preview removals.',
+      };
+    }
+  }, [deleteInput, pageCount, tool.id]);
+  const pageNumberPreviewConfig = useMemo(() => {
+    if (tool.id !== 'add-page-numbers' || !pageCount) {
+      return {
+        title: 'Page number preview',
+        detail: 'Upload a PDF to preview how page numbers will look.',
+        warning: '',
+        pageNumbers: [],
+        labelsByPage: {},
+      };
+    }
+
+    const parsedFirst = Number(pageNumberFirst);
+    const parsedFrom = Number(pageNumberFrom);
+    const parsedTo = pageNumberTo.trim() ? Number(pageNumberTo) : pageCount;
+    const first = Number.isInteger(parsedFirst) && parsedFirst > 0 ? parsedFirst : 1;
+    const from = Number.isInteger(parsedFrom) && parsedFrom > 0 ? parsedFrom : 1;
+    const to = Number.isInteger(parsedTo) && parsedTo > 0 ? parsedTo : pageCount;
+
+    if (from > pageCount || to > pageCount || from > to) {
+      const fallback = Array.from({ length: Math.min(pageCount, 8) }, (_, index) => index + 1);
+      return {
+        title: 'Page number preview',
+        detail: `Showing the first ${fallback.length} pages until the page range is valid.`,
+        warning: `Use a page range between 1 and ${pageCount}.`,
+        pageNumbers: fallback,
+        labelsByPage: {},
+      };
+    }
+
+    const numberingPages = [];
+    for (let page = from; page <= to; page += 1) {
+      numberingPages.push(page);
+    }
+
+    const previewPages = Array.from(new Set([
+      ...numberingPages.slice(0, 10),
+      1,
+      pageCount,
+      from,
+      to,
+    ]))
+      .filter((page) => page >= 1 && page <= pageCount)
+      .sort((left, right) => left - right)
+      .slice(0, 12);
+
+    const formatLabel = (displayNumber) => {
+      if (pageTextMode === 'page-x') {
+        return `${prefix}Page ${displayNumber}${suffix}`;
+      }
+      if (pageTextMode === 'page-x-of-y') {
+        return `${prefix}Page ${displayNumber} of ${to - from + 1}${suffix}`;
+      }
+      return `${prefix}${displayNumber}${suffix}`;
+    };
+
+    const labelsByPage = {};
+    previewPages.forEach((page) => {
+      if (page < from || page > to) {
+        labelsByPage[page] = null;
+        return;
+      }
+      const displayNumber = first + (page - from);
+      labelsByPage[page] = formatLabel(displayNumber);
+    });
+
+    return {
+      title: 'Page number preview',
+      detail: `Numbering pages ${from}-${to} starting from ${first}.`,
+      warning: '',
+      pageNumbers: previewPages,
+      labelsByPage,
+    };
+  }, [pageCount, pageNumberFirst, pageNumberFrom, pageNumberTo, pageTextMode, prefix, suffix, tool.id]);
+
+  const getFacingPagePosition = (position, pageNumber) => {
+    if (pageMode !== 'facing' || pageNumber % 2 !== 0) {
+      return position;
+    }
+    if (position.includes('left')) {
+      return position.replace('left', 'right');
+    }
+    if (position.includes('right')) {
+      return position.replace('right', 'left');
+    }
+    return position;
+  };
+
+  const normalizeFacingBasePosition = (position) => {
+    if (position === 'top-center') return 'top-right';
+    if (position === 'middle-center') return 'middle-right';
+    if (position === 'bottom-center') return 'bottom-right';
+    return position;
+  };
 
   useEffect(() => {
     setMessage('');
@@ -638,10 +783,35 @@ export default function ToolWorkspace({ tool }) {
     setSplitPreviewItems([]);
     setSplitPreviewError('');
     setSplitPreviewLoading(false);
+    setDeletePreviewItems([]);
+    setDeletePreviewError('');
+    setDeletePreviewLoading(false);
     setReorderPreviewItems([]);
     setReorderPreviewError('');
     setReorderPreviewLoading(false);
+    setPageNumberPreviewItems([]);
+    setPageNumberPreviewError('');
+    setPageNumberPreviewLoading(false);
   }, [tool.id, files]);
+
+  useEffect(() => {
+    if (tool.id !== 'add-page-numbers') {
+      return;
+    }
+    setPageNumberFirst('1');
+    setPageNumberFrom('1');
+    setPageNumberTo(pageCount ? String(pageCount) : '');
+    setPageTextMode('number-only');
+    setPageMode('single');
+    setPageFontFamily('helvetica');
+    setPageFontSize('11');
+    setPageFontBold(false);
+    setPageFontItalic(false);
+    setPageFontUnderline(false);
+    setPageFontColor('#4b5563');
+    setPrefix('');
+    setSuffix('');
+  }, [pageCount, tool.id]);
 
   useEffect(() => {
     if (!busy) {
@@ -805,6 +975,44 @@ export default function ToolWorkspace({ tool }) {
   useEffect(() => {
     let cancelled = false;
 
+    async function loadDeletePreview() {
+      if (tool.id !== 'delete-pages' || !files[0] || !deletePreviewConfig.pageNumbers.length) {
+        setDeletePreviewItems([]);
+        setDeletePreviewLoading(false);
+        setDeletePreviewError('');
+        return;
+      }
+
+      setDeletePreviewLoading(true);
+      setDeletePreviewError('');
+
+      try {
+        const preview = await getPdfPagePreviews(files[0], deletePreviewConfig.pageNumbers, 132);
+        if (!cancelled) {
+          setDeletePreviewItems(preview.pages);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setDeletePreviewItems([]);
+          setDeletePreviewError(error.message || 'Could not load the page preview.');
+        }
+      } finally {
+        if (!cancelled) {
+          setDeletePreviewLoading(false);
+        }
+      }
+    }
+
+    loadDeletePreview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [deletePreviewConfig.pageNumbers, files, tool.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
     async function loadReorderPreview() {
       if (tool.id !== 'reorder-pages' || !files[0] || !reorderPreviewConfig.pageNumbers.length) {
         setReorderPreviewItems([]);
@@ -840,12 +1048,71 @@ export default function ToolWorkspace({ tool }) {
     };
   }, [files, reorderPreviewConfig.pageNumbers, tool.id]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPageNumberPreview() {
+      if (tool.id !== 'add-page-numbers' || !files[0] || !pageNumberPreviewConfig.pageNumbers.length) {
+        setPageNumberPreviewItems([]);
+        setPageNumberPreviewLoading(false);
+        setPageNumberPreviewError('');
+        return;
+      }
+
+      setPageNumberPreviewLoading(true);
+      setPageNumberPreviewError('');
+
+      try {
+        const preview = await getPdfPagePreviews(files[0], pageNumberPreviewConfig.pageNumbers, 132);
+        if (!cancelled) {
+          setPageNumberPreviewItems(preview.pages);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setPageNumberPreviewItems([]);
+          setPageNumberPreviewError(error.message || 'Could not load the page-number preview.');
+        }
+      } finally {
+        if (!cancelled) {
+          setPageNumberPreviewLoading(false);
+        }
+      }
+    }
+
+    loadPageNumberPreview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [files, pageNumberPreviewConfig.pageNumbers, tool.id]);
+
   const handleFiles = (nextFiles) => {
     setFiles((current) => (uploadConfig.multiple ? [...current, ...nextFiles] : nextFiles));
   };
 
   const handleRemove = (index) => {
     setFiles((current) => current.filter((_, currentIndex) => currentIndex !== index));
+  };
+
+  const toggleDeletePage = (pageNumber) => {
+    setDeleteInput((current) => {
+      let selectedPages = [];
+
+      try {
+        selectedPages = current.trim() ? parseNumberList(current, pageCount) : [];
+      } catch {
+        selectedPages = [];
+      }
+
+      const nextPages = new Set(selectedPages);
+      if (nextPages.has(pageNumber)) {
+        nextPages.delete(pageNumber);
+      } else {
+        nextPages.add(pageNumber);
+      }
+
+      return formatPageSequence(Array.from(nextPages));
+    });
   };
 
   const progressLabel = useMemo(() => {
@@ -980,34 +1247,17 @@ export default function ToolWorkspace({ tool }) {
   }, [busy, files.length, messageTone, tool.id, tool.title, uploadConfig.multiple]);
 
   async function runBackendTool() {
-    if (!files.length && !(tool.id === 'html-to-pdf' && urlInput)) {
-      throw new Error('Upload a file first or provide a URL.');
+    if (!files.length) {
+      throw new Error('Upload a file first.');
     }
 
     const formData = new FormData();
-    if (files.length) {
-      formData.append('file', files[0]);
-    }
-    
+    formData.append('file', files[0]);
     if (tool.id === 'pdf-to-word') {
       formData.append('mode', pdfToWordMode);
     }
-    if (tool.id === 'protect-pdf' || tool.id === 'unlock-pdf') {
-      formData.append('password', passwordInput);
-    }
-    if (tool.id === 'html-to-pdf' && urlInput) {
-      formData.append('url', urlInput);
-    }
-    if (tool.id === 'watermark-pdf') {
-      formData.append('watermarkText', watermarkText);
-    }
-    if (tool.id === 'add-page-numbers') {
-      formData.append('position', pagePosition);
-      formData.append('prefix', prefix);
-      formData.append('suffix', suffix);
-    }
 
-    const endpoint = `/api/convert/${tool.id}`;
+    const endpoint = LOCAL_API_TOOLS.has(tool.id) ? `/api/convert/${tool.id}` : `${API_BASE_URL}/api/convert/${tool.id}`;
     let response;
 
     try {
@@ -1020,7 +1270,7 @@ export default function ToolWorkspace({ tool }) {
         throw new Error('Could not reach the built-in PDF to Word converter. Restart the app server and try again.');
       }
 
-      throw new Error(`Could not access the conversion API. Please ensure the backend server is running.`);
+      throw new Error(`Could not reach the conversion server at ${API_BASE_URL}. Start the backend service and try again.`);
     }
 
     if (!response.ok) {
@@ -1137,88 +1387,6 @@ export default function ToolWorkspace({ tool }) {
         };
       }
 
-      case 'protect-pdf': {
-        if (!passwordInput) throw new Error('Please enter a password.');
-        const result = await protectPDF(files[0], passwordInput);
-        return {
-          message: 'Protection completed. Download the protected PDF.',
-          download: {
-            blob: result.blob,
-            filename: result.filename,
-            label: 'Download protected PDF',
-            title: 'Protected PDF ready',
-            description: 'Your file has been secured with the password.',
-          },
-        };
-      }
-
-      case 'unlock-pdf': {
-        if (!passwordInput) throw new Error('Please enter the password to unlock.');
-        const result = await unlockPDF(files[0], passwordInput);
-        return {
-          message: 'Unlock completed. Download the unlocked PDF.',
-          download: {
-            blob: result.blob,
-            filename: result.filename,
-            label: 'Download unlocked PDF',
-            title: 'Unlocked PDF ready',
-            description: 'The password has been removed from your file.',
-          },
-        };
-      }
-
-      case 'sign-pdf': {
-        if (!signatureData) {
-          setSignatureModalOpen(true);
-          throw new Error('Please draw your signature first.');
-        }
-        const result = await signPDF(files[0], signatureData);
-        return {
-          message: 'Signature applied successfully!',
-          download: {
-            blob: result.blob,
-            filename: result.filename,
-            label: 'Download signed PDF',
-            title: 'Signed PDF ready',
-            description: 'Your document has been securely stamped with your signature.',
-          },
-        };
-      }
-
-      case 'edit-pdf': {
-        if (!canvasItemsRef.current || canvasItemsRef.current.length === 0) {
-          throw new Error('Please add at least one edit on the canvas.');
-        }
-        const result = await editPDF(files[0], canvasItemsRef.current);
-        return {
-          message: 'Edits applied successfully. Download your updated PDF.',
-          download: {
-            blob: result.blob,
-            filename: result.filename,
-            label: 'Download Edited PDF',
-            title: 'Edited PDF ready',
-            description: 'Your document has been updated with the new text.',
-          },
-        };
-      }
-
-      case 'redact-pdf': {
-        if (!canvasItemsRef.current || canvasItemsRef.current.length === 0) {
-          throw new Error('Please draw at least one redaction box on the canvas.');
-        }
-        const result = await redactPDF(files[0], canvasItemsRef.current);
-        return {
-          message: 'Redaction applied successfully. Download your secure PDF.',
-          download: {
-            blob: result.blob,
-            filename: result.filename,
-            label: 'Download Redacted PDF',
-            title: 'Redacted PDF ready',
-            description: 'Sensitive information has been blacked out permanently.',
-          },
-        };
-      }
-
       case 'compress-pdf': {
         const blob = await compressPDF(files[0], {
           strength: compressStrength,
@@ -1261,7 +1429,7 @@ export default function ToolWorkspace({ tool }) {
         const pagesToDelete = parseNumberList(deleteInput, pageCount).map((page) => page - 1);
         const blob = await deletePages(files[0], pagesToDelete);
         return {
-          message: 'Delete pages completed. Use the button to download the updated PDF.',
+          message: 'Remove pages completed. Use the button to download the updated PDF.',
           download: {
             blob,
             filename: outputName(files[0].name, 'trimmed'),
@@ -1297,20 +1465,6 @@ export default function ToolWorkspace({ tool }) {
             label: 'Download PDF',
             title: 'PDF ready',
             description: 'Your images have been combined into one PDF. Download it when you are ready.',
-          },
-        };
-      }
-
-      case 'scan-to-pdf': {
-        const blob = await imagesToPDF(files);
-        return {
-          message: 'Scanned document PDF created. Download it when you are ready.',
-          download: {
-            blob,
-            filename: 'scanned-document.pdf',
-            label: 'Download Scanned PDF',
-            title: 'Scanned PDF ready',
-            description: 'Your photos have been compiled into a single PDF document.',
           },
         };
       }
@@ -1363,8 +1517,31 @@ export default function ToolWorkspace({ tool }) {
       }
 
       case 'add-page-numbers': {
+        const firstNumber = Number(pageNumberFirst);
+        const rangeFrom = Number(pageNumberFrom);
+        const rangeTo = pageNumberTo.trim() ? Number(pageNumberTo) : pageCount;
+        if (!Number.isInteger(firstNumber) || firstNumber < 1) {
+          throw new Error('First number must be 1 or greater.');
+        }
+        if (!Number.isInteger(rangeFrom) || !Number.isInteger(rangeTo) || rangeFrom < 1 || rangeTo < rangeFrom) {
+          throw new Error('Enter a valid page range.');
+        }
+        if (pageCount && (rangeFrom > pageCount || rangeTo > pageCount)) {
+          throw new Error(`Page range must stay between 1 and ${pageCount}.`);
+        }
+
         const blob = await addPageNumbers(files[0], {
+          pageMode,
           position: pagePosition,
+          startFrom: firstNumber,
+          pageRange: [rangeFrom, rangeTo],
+          textMode: pageTextMode,
+          fontFamily: pageFontFamily,
+          fontSize: Number(pageFontSize) || 11,
+          bold: pageFontBold,
+          italic: pageFontItalic,
+          underline: pageFontUnderline,
+          color: pageFontColor,
           prefix,
           suffix,
         });
@@ -1418,9 +1595,10 @@ export default function ToolWorkspace({ tool }) {
   };
 
   const inlinePendingDownload = DOWNLOAD_BUTTON_TOOLS.has(tool.id) ? pendingDownload : null;
+  const defaultActionLabel = tool.id === 'delete-pages' ? 'Remove pages' : `Start ${tool.title}`;
   const primaryActionLabel = busy
     ? `Processing ${String(progressValue).padStart(2, '0')}%`
-    : inlinePendingDownload?.label || `Start ${tool.title}`;
+    : inlinePendingDownload?.label || defaultActionLabel;
   const primaryActionHandler = inlinePendingDownload
     ? () => downloadBlob(inlinePendingDownload.blob, inlinePendingDownload.filename)
     : handleProcess;
@@ -1436,10 +1614,10 @@ export default function ToolWorkspace({ tool }) {
           : pdfToWordMode === 'ocr'
             ? 'OCR mode is for scanned PDFs with non-selectable text. It needs OCR support on the server and may take longer.'
             : 'No OCR mode is for PDFs that already contain selectable text. It now uses a stronger editable converter first and a faster small-file profile when possible.'
-        : `Secure server-side processing running.`;
+        : `Server-side conversion uses ${API_BASE_URL}.`;
 
   return (
-    <div className="tool-workspace">
+    <div className={`tool-workspace tool-workspace-${tool.id}`}>
       <section className="surface-card">
         <div className="surface-header">
           <div>
@@ -1449,33 +1627,19 @@ export default function ToolWorkspace({ tool }) {
           {pageCount ? <span className="pill">{pageCount} pages detected</span> : null}
         </div>
 
-        {true ? (
+        {supportsClientTool || SUPPORTED_API_TOOLS.includes(tool.id) ? (
           <>
-            {files.length === 0 || (!['edit-pdf', 'redact-pdf'].includes(tool.id)) ? (
-              <FileUploader
-                onFiles={handleFiles}
-                accept={getAcceptTypes(tool.id)}
-                multiple={uploadConfig.multiple}
-                label={uploadConfig.label}
-                description={uploadConfig.description}
-                capture={uploadConfig.capture}
-                currentCount={files.length}
-                showUploadHint={tool.id === 'merge-pdf' && files.length === 0}
-                uploadHintText="Add PDFs here"
-              />
-            ) : null}
-
-            {files[0] && (tool.id === 'edit-pdf' || tool.id === 'redact-pdf') && !pendingDownload && !busy ? (
-              <PdfCanvasInteractor
-                file={files[0]}
-                mode={tool.id === 'edit-pdf' ? 'edit' : 'redact'}
-                onComplete={(items) => {
-                  canvasItemsRef.current = items;
-                  handleProcess();
-                }}
-                onCancel={() => handleRemove(0)}
-              />
-            ) : null}
+            <FileUploader
+              onFiles={handleFiles}
+              accept={getAcceptTypes(tool.id)}
+              multiple={uploadConfig.multiple}
+              label={uploadConfig.label}
+              description={uploadConfig.description}
+              currentCount={files.length}
+              showUploadHint={tool.id === 'merge-pdf' && files.length === 0}
+              uploadHintText="Add PDFs here"
+              variant={tool.id === 'delete-pages' ? 'clean' : 'default'}
+            />
 
             {tool.id === 'split-pdf' && files[0] ? (
               <>
@@ -1632,7 +1796,15 @@ export default function ToolWorkspace({ tool }) {
                 onRemove={() => handleRemove(0)}
                 previewRotation={Number(rotation)}
               />
-            ) : tool.id === 'edit-pdf' || tool.id === 'redact-pdf' ? null : (
+            ) : tool.id === 'delete-pages' && files[0] ? (
+              <SinglePdfPreviewCard
+                file={files[0]}
+                pageCount={pageCount}
+                title="1 PDF ready"
+                description="Enter the pages you want removed below, then run the cleanup."
+                onRemove={() => handleRemove(0)}
+              />
+            ) : (
               <FileList
                 files={files}
                 onRemove={files.length > 1 ? handleRemove : undefined}
@@ -1866,80 +2038,97 @@ export default function ToolWorkspace({ tool }) {
             ) : null}
 
             {tool.id === 'delete-pages' ? (
-              <div className="control-grid">
-                <label className="field field-wide">
+              <div className="control-grid delete-pages-controls">
+                <label className="field field-wide delete-pages-field">
                   <span>Pages to remove</span>
                   <input
                     value={deleteInput}
                     onChange={(event) => setDeleteInput(event.target.value)}
                     placeholder="2, 5-7"
                   />
-                  <small>Examples: 2,4,6 or 3-5.</small>
+                  <small>Use commas for separate pages and dashes for ranges, for example 2,4,6 or 3-5.</small>
                 </label>
 
-                <div className="split-help-panel field-wide">
-                  <div className="split-help-header">
-                    <strong>How to remove pages</strong>
-                    <p>Type the page numbers you want to remove. Everything else will stay in the final PDF.</p>
+                <div className="delete-pages-guide field-wide">
+                  <div className="delete-pages-guide-header">
+                    <strong>Remove exactly what you need</strong>
+                    {pageCount ? (
+                      <span>{pageCount} page{pageCount === 1 ? '' : 's'} detected</span>
+                    ) : null}
                   </div>
 
-                  <div className="split-rule-grid">
-                    <article className="split-rule-card">
-                      <code>42</code>
+                  <div className="delete-pages-example-grid" aria-label="Remove pages examples">
+                    <article className="delete-pages-example">
+                      <code>2</code>
                       <strong>Single page</strong>
-                      <p>Remove one page only.</p>
-                      <span>Example: <code>42</code></span>
+                      <p>Removes only page 2.</p>
                     </article>
-
-                    <article className="split-rule-card">
-                      <code>,</code>
-                      <strong>Comma</strong>
-                      <p>Remove multiple separate pages in one step.</p>
-                      <span>Example: <code>2,4,6</code></span>
+                    <article className="delete-pages-example">
+                      <code>2,4,6</code>
+                      <strong>Separate pages</strong>
+                      <p>Removes pages 2, 4, and 6.</p>
                     </article>
-
-                    <article className="split-rule-card">
-                      <code>-</code>
-                      <strong>Range</strong>
-                      <p>Remove all pages from the first number to the last number.</p>
-                      <span>Example: <code>10-15</code></span>
-                    </article>
-                  </div>
-
-                  <div className="split-help-steps" aria-label="Delete pages steps">
-                    <article className="split-help-step">
-                      <strong>1. Remove one page</strong>
-                      <p>Type only that page number. Example: <code>42</code> removes page 42 only.</p>
-                    </article>
-                    <article className="split-help-step">
-                      <strong>2. Remove several pages</strong>
-                      <p>Use commas for separate pages. Example: <code>2,4,6</code> removes pages 2, 4, and 6.</p>
-                    </article>
-                    <article className="split-help-step">
-                      <strong>3. Remove a full range</strong>
-                      <p>Use a dash for consecutive pages. Example: <code>8-12</code> removes pages 8, 9, 10, 11, and 12.</p>
-                    </article>
-                  </div>
-
-                  <div className="split-example-list">
-                    <div className="split-example-item">
-                      <code>42</code>
-                      <p>Removes only page 42.</p>
-                    </div>
-                    <div className="split-example-item">
-                      <code>3,9,14</code>
-                      <p>Removes pages 3, 9, and 14.</p>
-                    </div>
-                    <div className="split-example-item">
+                    <article className="delete-pages-example">
                       <code>5-10</code>
+                      <strong>Page range</strong>
                       <p>Removes every page from 5 through 10.</p>
-                    </div>
-                    <div className="split-example-item">
-                      <code>1,4-6,12</code>
-                      <p>Removes page 1, pages 4 to 6, and page 12 together.</p>
-                    </div>
+                    </article>
                   </div>
                 </div>
+
+                {files[0] ? (
+                  <section className="delete-preview-panel field-wide">
+                    <div className="delete-preview-header">
+                      <div>
+                        <strong>{deletePreviewConfig.title}</strong>
+                        <p>{deletePreviewConfig.detail}</p>
+                      </div>
+                    </div>
+
+                    {deletePreviewConfig.warning ? (
+                      <p className="split-preview-warning">{deletePreviewConfig.warning}</p>
+                    ) : null}
+
+                    {deletePreviewLoading ? (
+                      <div className="split-preview-state">
+                        <span className="workflow-spinner" aria-hidden="true" />
+                        <p>Loading page previews...</p>
+                      </div>
+                    ) : deletePreviewError ? (
+                      <div className="split-preview-state split-preview-state-error">
+                        <p>{deletePreviewError}</p>
+                      </div>
+                    ) : (
+                      <div className="delete-preview-grid">
+                        {deletePreviewItems.map((page) => {
+                          const isSelected = deletePreviewConfig.selectedPages.includes(page.pageNumber);
+
+                          return (
+                            <button
+                              key={page.pageNumber}
+                              type="button"
+                              className={`delete-preview-card${isSelected ? ' delete-preview-card-selected' : ''}`}
+                              onClick={() => toggleDeletePage(page.pageNumber)}
+                              aria-pressed={isSelected}
+                            >
+                              <span className="delete-preview-status">
+                                {isSelected ? 'Remove' : 'Keep'}
+                              </span>
+                              <span className="delete-preview-thumb">
+                                <img
+                                  src={page.previewUrl}
+                                  alt={`Preview of page ${page.pageNumber}`}
+                                  className="split-preview-image"
+                                />
+                              </span>
+                              <span className="delete-preview-caption">Page {page.pageNumber}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                ) : null}
               </div>
             ) : null}
 
@@ -2034,117 +2223,261 @@ export default function ToolWorkspace({ tool }) {
               </div>
             ) : null}
 
-            {['protect-pdf', 'unlock-pdf'].includes(tool.id) ? (
-              <div className="control-grid">
-                <label className="field field-wide">
-                  <span>PDF Password</span>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={passwordInput}
-                      onChange={(event) => setPasswordInput(event.target.value)}
-                      placeholder="Enter password..."
-                      style={{
-                        width: '100%',
-                        paddingRight: '40px',
-                        border: '2px solid #e2e8f0',
-                        borderRadius: '8px',
-                        transition: 'border-color 0.2s',
-                        height: '48px'
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = '#f97316'}
-                      onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                      style={{
-                        position: 'absolute',
-                        right: '12px',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: '#64748b',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '4px'
-                      }}
-                    >
-                      {showPassword ? (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
-                      ) : (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                      )}
-                    </button>
-                  </div>
-                </label>
-              </div>
-            ) : null}
-
-            {tool.id === 'html-to-pdf' ? (
-              <div className="control-grid">
-                <label className="field field-wide">
-                  <span>Or enter a webpage URL to convert</span>
-                  <input
-                    type="url"
-                    value={urlInput}
-                    onChange={(event) => setUrlInput(event.target.value)}
-                    placeholder="https://example.com"
-                  />
-                </label>
-              </div>
-            ) : null}
-
-            {tool.id === 'sign-pdf' ? (
-              <div className="control-grid">
-                <div className="field field-wide">
-                  <span>Your Signature</span>
-                  {signatureData ? (
-                    <div style={{ border: '2px solid #e2e8f0', padding: '10px', borderRadius: '4px', textAlign: 'center', background: '#fff' }}>
-                      <img src={signatureData} alt="Signature" style={{ maxHeight: '100px' }} />
-                      <button type="button" className="secondary-button" style={{ marginTop: '10px' }} onClick={() => setSignatureModalOpen(true)}>Redraw Signature</button>
-                    </div>
-                  ) : (
-                    <button type="button" className="secondary-button" onClick={() => setSignatureModalOpen(true)}>
-                      Draw Signature
-                    </button>
-                  )}
-                </div>
-              </div>
-            ) : null}
-
             {tool.id === 'add-page-numbers' ? (
-              <div className="control-grid">
-                <label className="field">
-                  <span>Position</span>
-                  <select value={pagePosition} onChange={(event) => setPagePosition(event.target.value)}>
-                    <option value="bottom-center">Bottom center</option>
-                    <option value="bottom-left">Bottom left</option>
-                    <option value="bottom-right">Bottom right</option>
-                    <option value="top-left">Top left</option>
-                    <option value="top-center">Top center</option>
-                    <option value="top-right">Top right</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Prefix</span>
-                  <input value={prefix} onChange={(event) => setPrefix(event.target.value)} placeholder="Page " />
-                </label>
-                <label className="field">
-                  <span>Suffix</span>
-                  <input value={suffix} onChange={(event) => setSuffix(event.target.value)} placeholder="" />
-                </label>
-              </div>
+              <>
+                {files[0] ? (
+                  <SinglePdfPreviewCard
+                    file={files[0]}
+                    pageCount={pageCount}
+                    title="1 PDF ready"
+                    description="Preview your pages and configure numbering options on the right."
+                    onRemove={() => handleRemove(0)}
+                    previewPosition={pagePosition}
+                  />
+                ) : null}
+
+                {files[0] ? (
+                  <section className="delete-preview-panel">
+                    <div className="delete-preview-header">
+                      <div>
+                        <strong>{pageNumberPreviewConfig.title}</strong>
+                        <p>{pageNumberPreviewConfig.detail}</p>
+                      </div>
+                    </div>
+
+                    {pageNumberPreviewConfig.warning ? (
+                      <p className="split-preview-warning">{pageNumberPreviewConfig.warning}</p>
+                    ) : null}
+
+                    {pageNumberPreviewLoading ? (
+                      <div className="split-preview-state">
+                        <span className="workflow-spinner" aria-hidden="true" />
+                        <p>Loading page previews...</p>
+                      </div>
+                    ) : pageNumberPreviewError ? (
+                      <div className="split-preview-state split-preview-state-error">
+                        <p>{pageNumberPreviewError}</p>
+                      </div>
+                    ) : (
+                      <div className="delete-preview-grid">
+                        {pageNumberPreviewItems.map((page) => {
+                          const label = pageNumberPreviewConfig.labelsByPage[page.pageNumber];
+                          const isNumbered = Boolean(label);
+                          return (
+                            <article key={page.pageNumber} className={`delete-preview-card add-number-preview-card${isNumbered ? ' add-number-preview-card-active' : ''}`}>
+                              <span className="delete-preview-status">
+                                {isNumbered ? 'Numbered' : 'Skip'}
+                              </span>
+                              <span className="delete-preview-thumb add-number-preview-thumb">
+                                <img
+                                  src={page.previewUrl}
+                                  alt={`Preview of page ${page.pageNumber}`}
+                                  className="split-preview-image"
+                                />
+                                {isNumbered ? (
+                                  <span
+                                    className={`add-number-overlay add-number-overlay-${getFacingPagePosition(pagePosition, page.pageNumber)}${pageFontUnderline ? ' add-number-overlay-underline' : ''}`}
+                                    style={{
+                                      color: pageFontColor,
+                                      fontWeight: pageFontBold ? 700 : 500,
+                                      fontStyle: pageFontItalic ? 'italic' : 'normal',
+                                      fontFamily:
+                                        pageFontFamily === 'times'
+                                          ? 'Times New Roman, serif'
+                                          : pageFontFamily === 'courier'
+                                            ? 'Courier New, monospace'
+                                            : 'Arial, Helvetica, sans-serif',
+                                      fontSize: `${Math.max(9, Math.min(16, Number(pageFontSize) || 11)) * 0.72}px`,
+                                    }}
+                                  >
+                                    {label}
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span className="delete-preview-caption">Page {page.pageNumber}</span>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                ) : null}
+
+                <div className="control-grid">
+                  <div className="field field-wide">
+                    <span>Page mode</span>
+                    <div className="mode-option-row" role="group" aria-label="Choose page mode">
+                      <button
+                        type="button"
+                        className={`mode-option-button${pageMode === 'single' ? ' mode-option-button-active' : ''}`}
+                        aria-pressed={pageMode === 'single'}
+                        onClick={() => setPageMode('single')}
+                      >
+                        Single page
+                      </button>
+                      <button
+                        type="button"
+                        className={`mode-option-button${pageMode === 'facing' ? ' mode-option-button-active' : ''}`}
+                        aria-pressed={pageMode === 'facing'}
+                        onClick={() => {
+                          setPageMode('facing');
+                          setPagePosition((current) => normalizeFacingBasePosition(current));
+                        }}
+                      >
+                        Facing pages
+                      </button>
+                    </div>
+                    <small>
+                      {pageMode === 'facing'
+                        ? 'Facing pages mirrors left/right positions on even pages (outer alignment), useful for book-like layouts.'
+                        : 'Single page applies the same position to every page.'}
+                    </small>
+                  </div>
+
+                  <div className="field">
+                    <span>Position</span>
+                    <div className="position-grid" role="grid" aria-label="Choose page number position">
+                      {[
+                        ['top-left','top-center','top-right'],
+                        ['middle-left','middle-center','middle-right'],
+                        ['bottom-left','bottom-center','bottom-right'],
+                      ].map((row, rIndex) => (
+                        <div key={rIndex} className="position-row">
+                          {row.map((pos) => (
+                            <button
+                              key={pos}
+                              type="button"
+                              className={`position-cell${pagePosition === pos ? ' position-cell-active' : ''}`}
+                              onClick={() => setPagePosition(pos)}
+                              aria-pressed={pagePosition === pos}
+                              title={pos.replace('-', ' ')}
+                            >
+                              <span className={`position-dot position-dot-${pos}`} />
+                            </button>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <label className="field">
+                    <span>First number</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={pageNumberFirst}
+                      onChange={(event) => setPageNumberFirst(event.target.value)}
+                      placeholder="1"
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>From page</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max={pageCount || undefined}
+                      value={pageNumberFrom}
+                      onChange={(event) => setPageNumberFrom(event.target.value)}
+                      placeholder="1"
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>To page</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max={pageCount || undefined}
+                      value={pageNumberTo}
+                      onChange={(event) => setPageNumberTo(event.target.value)}
+                      placeholder={pageCount ? String(pageCount) : ''}
+                    />
+                  </label>
+
+                  <label className="field field-wide">
+                    <span>Text</span>
+                    <select value={pageTextMode} onChange={(event) => setPageTextMode(event.target.value)}>
+                      <option value="number-only">Insert only page number (recommended)</option>
+                      <option value="page-x">Insert &quot;Page X&quot;</option>
+                      <option value="page-x-of-y">Insert &quot;Page X of Y&quot;</option>
+                    </select>
+                  </label>
+
+                  <div className="field field-wide">
+                    <span>Text format</span>
+                    <div className="page-format-toolbar" role="group" aria-label="Text format options">
+                      <select
+                        value={pageFontFamily}
+                        onChange={(event) => setPageFontFamily(event.target.value)}
+                        className="page-format-font"
+                      >
+                        <option value="helvetica">Arial</option>
+                        <option value="times">Times New Roman</option>
+                        <option value="courier">Courier New</option>
+                      </select>
+                      <input
+                        type="number"
+                        min="8"
+                        max="48"
+                        value={pageFontSize}
+                        onChange={(event) => setPageFontSize(event.target.value)}
+                        className="page-format-size"
+                        title="Font size"
+                      />
+                      <button
+                        type="button"
+                        className={`page-format-button${pageFontBold ? ' page-format-button-active' : ''}`}
+                        onClick={() => setPageFontBold((current) => !current)}
+                        aria-pressed={pageFontBold}
+                        title="Bold"
+                      >
+                        B
+                      </button>
+                      <button
+                        type="button"
+                        className={`page-format-button${pageFontItalic ? ' page-format-button-active' : ''}`}
+                        onClick={() => setPageFontItalic((current) => !current)}
+                        aria-pressed={pageFontItalic}
+                        title="Italic"
+                      >
+                        I
+                      </button>
+                      <button
+                        type="button"
+                        className={`page-format-button${pageFontUnderline ? ' page-format-button-active' : ''}`}
+                        onClick={() => setPageFontUnderline((current) => !current)}
+                        aria-pressed={pageFontUnderline}
+                        title="Underline"
+                      >
+                        U
+                      </button>
+                      <input
+                        type="color"
+                        value={pageFontColor}
+                        onChange={(event) => setPageFontColor(event.target.value)}
+                        className="page-format-color"
+                        title="Text color"
+                      />
+                    </div>
+                  </div>
+
+                  <label className="field">
+                    <span>Prefix</span>
+                    <input value={prefix} onChange={(event) => setPrefix(event.target.value)} placeholder="Page " />
+                  </label>
+                  <label className="field">
+                    <span>Suffix</span>
+                    <input value={suffix} onChange={(event) => setSuffix(event.target.value)} placeholder="" />
+                  </label>
+                </div>
+              </>
             ) : null}
 
             <div className="action-row">
-              {!(tool.id === 'edit-pdf' || tool.id === 'redact-pdf') || pendingDownload || busy ? (
-                <button type="button" className="primary-button" onClick={primaryActionHandler} disabled={busy || (files[0] && (tool.id === 'edit-pdf' || tool.id === 'redact-pdf') && !pendingDownload)}>
-                  {primaryActionLabel}
-                </button>
-              ) : null}
+              <button type="button" className="primary-button" onClick={primaryActionHandler} disabled={busy}>
+                {primaryActionLabel}
+              </button>
               <p className="helper-text">{helperCopy}</p>
             </div>
 
@@ -2208,16 +2541,6 @@ export default function ToolWorkspace({ tool }) {
               />
             ) : null}
 
-            {signatureModalOpen && (
-              <SignaturePadModal 
-                onSave={(dataUrl) => {
-                  setSignatureData(dataUrl);
-                  setSignatureModalOpen(false);
-                }} 
-                onCancel={() => setSignatureModalOpen(false)} 
-              />
-            )}
-
             <div className="workflow-guide">
               <p className="eyebrow">Process Steps</p>
               <div className="workflow-steps" aria-label="How the tool workflow works">
@@ -2237,9 +2560,10 @@ export default function ToolWorkspace({ tool }) {
           </>
         ) : (
           <div className="empty-state">
-            <h3>Feature scheduled for next phase</h3>
+            <h3>Feature not enabled in this build</h3>
             <p>
-              This complex tool is currently under active development. Keep it hidden in production until the architecture is tested and ready.
+              Password-protected PDF tools need a dedicated PDF security service. Keep them hidden in production until
+              you add a tested backend flow.
             </p>
           </div>
         )}

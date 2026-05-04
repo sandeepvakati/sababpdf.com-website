@@ -14,7 +14,10 @@ pymupdf>=1.23.8
 python-docx>=0.8.11
 
 # Best-quality editable PDF conversion (optional but recommended)
-pdf2docx>=0.5.12
+pdf2docx>=0.5.8
+
+# PDF encryption/decryption and manipulation
+PyPDF2>=3.0.0
 
 # --- IMAGE PROCESSING (REQUIRED) ---
 # Image handling for PDF rendering
@@ -23,6 +26,12 @@ Pillow>=10.0.0
 # --- TABLE EXTRACTION (REQUIRED FOR IMPROVED TABLES) ---
 # High-quality table detection and extraction
 pdfplumber>=0.10.3
+pandas>=2.0.0
+openpyxl>=3.1.0
+
+# --- OPTIONAL PDF TABLE DETECTION (RECOMMENDED) ---
+# Best results for bordered/structured PDF tables (requires Java)
+# tabula-py>=2.9.0
 
 # --- OCR SUPPORT (OPTIONAL - for scanned PDFs) ---
 # OCR text recognition (requires Tesseract OCR installed on system)
@@ -37,10 +46,10 @@ pdfplumber>=0.10.3
 # QUICK INSTALL COMMANDS:
 # ============================================================
 # Minimum (basic conversion):
-#   pip install pymupdf python-docx Pillow
+#   pip install pymupdf python-docx Pillow PyPDF2
 #
 # Recommended (best quality with tables & formulas):
-#   pip install pymupdf python-docx pdf2docx Pillow pdfplumber
+#   pip install pymupdf python-docx pdf2docx Pillow pdfplumber PyPDF2
 #
 # Full (includes OCR for scanned PDFs):
 #   pip install -r requirements.txt
